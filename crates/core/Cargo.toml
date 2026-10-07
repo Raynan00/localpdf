@@ -1,0 +1,21 @@
+[package]
+name = "localpdf-core"
+description = "Offline PDF engine for LocalPDF: qpdf (vendored) for document ops, PDFium for rendering"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+qpdf = { version = "0.3.7", features = ["vendored"] }
+pdfium-render = { version = "0.9.4", default-features = false, features = ["pdfium_latest", "image_latest", "thread_safe"] }
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "tiff", "bmp", "gif", "webp"] }
+zip = { version = "2", default-features = false, features = ["deflate"] }
+thiserror = "2"
+serde = { version = "1", features = ["derive"] }
+url = "2"
+tempfile = "3"
+serde_json = "1"
+
+[[bin]]
+name = "localpdf-cli"
+path = "src/bin/cli.rs"

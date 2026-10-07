@@ -1,0 +1,7 @@
+/target
+node_modules
+/ui/dist
+/src-tauri/engines/*
+!/src-tauri/engines/README.md
+/src-tauri/gen
+.DS_Store
