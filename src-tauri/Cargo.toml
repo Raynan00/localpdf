@@ -1,0 +1,25 @@
+[package]
+name = "localpdf"
+description = "Right-click PDF actions, processed locally"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+localpdf-core = { path = "../crates/core" }
+tauri = { version = "2.12", features = [] }
+tauri-plugin-single-instance = "2"
+tauri-plugin-opener = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[target.'cfg(windows)'.dependencies]
+winreg = "0.55"
+windows-sys = { version = "0.59", features = ["Win32_UI_Shell"] }
+
+[features]
+# Lets `tauri dev` serve the UI from Vite.
+custom-protocol = ["tauri/custom-protocol"]

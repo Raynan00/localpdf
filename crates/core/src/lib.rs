@@ -141,6 +141,20 @@ pub struct Report {
 pub struct Failure {
     pub file: String,
     pub message: String,
+    /// Set for failures the user can fix by retrying with other input.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub retry: Option<&'static str>,
+}
+
+impl Failure {
+    fn new(file: &str, e: &LpError) -> Failure {
+        let retry = match e {
+            LpError::WrongPassword(_) => Some("password"),
+            LpError::InvalidRange(_) => Some("ranges"),
+            _ => None,
+        };
+        Failure { file: file.to_string(), message: e.to_string(), retry }
+    }
 }
 
 /// Natural order: "page 2" before "page 10".
@@ -298,7 +312,7 @@ pub fn run(plan: &Plan, opts: &Options, progress: &mut dyn FnMut(Progress)) -> R
                     report.notes.push(format!("{} files, {pages} pages", paths.len()));
                     report.outputs.push(target);
                 }
-                Err(e) => report.failures.push(Failure { file: String::new(), message: e.to_string() }),
+                Err(e) => report.failures.push(Failure::new("", &e)),
             }
             return report;
         }
@@ -308,14 +322,14 @@ pub fn run(plan: &Plan, opts: &Options, progress: &mut dyn FnMut(Progress)) -> R
                 progress(Progress { done: i as u32, total, label: f.name.clone() });
                 match images::load(&f.path) {
                     Ok(img) => imgs.push(img),
-                    Err(e) => report.failures.push(Failure { file: f.name.clone(), message: e.to_string() }),
+                    Err(e) => report.failures.push(Failure::new(&f.name, &e)),
                 }
             }
             if !imgs.is_empty() {
                 let target = naming::sibling(&files[0].path, "combined", "pdf");
                 match doc::images_to_pdf(&imgs, &target) {
                     Ok(()) => report.outputs.push(target),
-                    Err(e) => report.failures.push(Failure { file: String::new(), message: e.to_string() }),
+                    Err(e) => report.failures.push(Failure::new("", &e)),
                 }
             }
             return report;
@@ -330,7 +344,7 @@ pub fn run(plan: &Plan, opts: &Options, progress: &mut dyn FnMut(Progress)) -> R
         };
         match run_one(plan.action, f, opts, &mut report, &mut sub) {
             Ok(mut outs) => report.outputs.append(&mut outs),
-            Err(e) => report.failures.push(Failure { file: f.name.clone(), message: e.to_string() }),
+            Err(e) => report.failures.push(Failure::new(&f.name, &e)),
         }
     }
     progress(Progress { done: total, total, label: String::new() });
