@@ -101,7 +101,7 @@ npx tauri build                           # Windows: NSIS installer. macOS: .app
 npx tauri build --target universal-apple-darwin   # universal macOS build
 ```
 
-Release builds are about 10 MB before compression: the app binary with qpdf compiled in, plus PDFium at about 5 MB.
+Sizes from CI: the Windows installer is 5.0 MB, and the universal macOS DMG is 12 MB (both Intel and Apple Silicon code, 28 MB unpacked). That covers the app binary with qpdf compiled in, plus PDFium.
 
 Engine tests, including generated PDFs, encryption round trips, merge failures and range errors:
 

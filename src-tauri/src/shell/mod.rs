@@ -38,7 +38,16 @@ pub struct Status {
 
 fn exe() -> std::io::Result<std::path::PathBuf> {
     let exe = std::env::current_exe()?;
-    Ok(exe.canonicalize().unwrap_or(exe))
+    let exe = exe.canonicalize().unwrap_or(exe);
+    // Windows canonical paths are verbatim (\\?\C:\...), which Explorer
+    // commands and users shouldn't see. Strip the prefix for drive paths.
+    #[cfg(windows)]
+    if let Some(rest) = exe.to_str().and_then(|s| s.strip_prefix(r"\\?\")) {
+        if rest.as_bytes().get(1) == Some(&b':') {
+            return Ok(std::path::PathBuf::from(rest));
+        }
+    }
+    Ok(exe)
 }
 
 #[cfg(any(windows, target_os = "macos"))]
