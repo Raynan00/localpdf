@@ -6,6 +6,11 @@ on:
     tags: ["v*"]
   pull_request:
   workflow_dispatch:
+    inputs:
+      release:
+        description: "Publish a GitHub Release, tagged v<version from tauri.conf.json>"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -55,6 +60,9 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: app
+      - id: version
+        shell: bash
+        run: echo "version=$(node -p "require('./src-tauri/tauri.conf.json').version")" >> "$GITHUB_OUTPUT"
       - run: npm ci
       - run: node scripts/fetch-engines.mjs win-x64
       - run: npx tauri build --bundles nsis
@@ -83,9 +91,13 @@ jobs:
         with:
           name: LocalPDF-windows-x64
           path: target/release/bundle/nsis/*-setup.exe
-      - if: startsWith(github.ref, 'refs/tags/v')
+      - if: startsWith(github.ref, 'refs/tags/v') || inputs.release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || format('v{0}', steps.version.outputs.version) }}
+          target_commitish: ${{ github.sha }}
+          name: LocalPDF ${{ steps.version.outputs.version }}
+          generate_release_notes: true
           files: target/release/bundle/nsis/*-setup.exe
 
   macos:
@@ -103,6 +115,9 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: app
+      - id: version
+        shell: bash
+        run: echo "version=$(node -p "require('./src-tauri/tauri.conf.json').version")" >> "$GITHUB_OUTPUT"
       - run: npm ci
       - run: node scripts/fetch-engines.mjs mac-univ
       - run: npx tauri build --target universal-apple-darwin
@@ -128,7 +143,11 @@ jobs:
         with:
           name: LocalPDF-macos-universal
           path: target/universal-apple-darwin/release/bundle/dmg/*.dmg
-      - if: startsWith(github.ref, 'refs/tags/v')
+      - if: startsWith(github.ref, 'refs/tags/v') || inputs.release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || format('v{0}', steps.version.outputs.version) }}
+          target_commitish: ${{ github.sha }}
+          name: LocalPDF ${{ steps.version.outputs.version }}
+          generate_release_notes: true
           files: target/universal-apple-darwin/release/bundle/dmg/*.dmg
