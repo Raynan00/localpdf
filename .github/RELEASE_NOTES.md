@@ -25,7 +25,7 @@ Most of the download is the built-in Office converter (LibreOffice), so Word, Ex
 3. If your browser (for example Edge) says the file **"isn't commonly downloaded"**, open the downloads list, click **⋯ → Keep → Show more → Keep anyway**.
 4. Right-click any PDF. On Windows 11, LocalPDF is under **Show more options** (or press Shift+F10).
 
-**"Smart App Control blocked an app"?** Some Windows 11 PCs have Smart App Control turned on, and it blocks unsigned installers with no way to continue. A code-signed installer is on the way. Until then, use **LocalPDF Lite** (`…-lite-setup.exe`): the same PDF tools in a much smaller installer. Lite doesn't include the Office converter; it converts Word, Excel and PowerPoint files if LibreOffice is installed on your PC. We don't recommend turning Smart App Control off to install LocalPDF: Windows can't turn it back on without a reset.
+**"Smart App Control blocked an app"?** Some Windows 11 PCs have Smart App Control turned on, and it blocks unsigned installers with no way to continue. A code-signed installer is on the way. Until then, use **LocalPDF Lite** (`…-lite-setup.exe`): the same PDF tools in a much smaller installer. Lite doesn't include the Office converter; it converts Word, Excel and PowerPoint files if LibreOffice is installed on your PC. Turning Smart App Control off isn't a good workaround: it checks apps every time they run, so LocalPDF would only keep working while it stays off.
 
 ### Mac (macOS 11 or later)
 1. Open the `.dmg` and drag **LocalPDF** into **Applications**. Run it from Applications, not from the disk image.

@@ -38,7 +38,7 @@ The installer adds the menu entries and the uninstaller removes them. Everything
 "%LOCALAPPDATA%\LocalPDF\LocalPDF.exe" --unregister
 ```
 
-**Blocked by Smart App Control?** Some Windows 11 PCs have Smart App Control turned on. It blocks unsigned installers outright, with no "Run anyway". Until the installer is code-signed, use `LocalPDF_x.y.z_x64-lite-setup.exe` (about 5 MB): the same PDF tools without the bundled Office converter. Lite converts Word, Excel and PowerPoint files when LibreOffice is installed on the PC. Turning Smart App Control off isn't recommended, since Windows can't turn it back on without a reset.
+**Blocked by Smart App Control?** Some Windows 11 PCs have Smart App Control turned on. It blocks unsigned installers outright, with no "Run anyway". Until the installer is code-signed, use `LocalPDF_x.y.z_x64-lite-setup.exe` (about 5 MB): the same PDF tools without the bundled Office converter. Lite converts Word, Excel and PowerPoint files when LibreOffice is installed on the PC. Turning Smart App Control off isn't a good workaround: it checks apps every time they run, so LocalPDF would only work while it stays off.
 
 LocalPDF uses the WebView2 runtime, which comes with Windows 11 and up-to-date Windows 10. If it's missing, the installer runs Microsoft's bootstrapper. That is the only download, it happens at install time, and it comes from Microsoft rather than LocalPDF.
 
