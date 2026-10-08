@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       release:
-        description: "Publish a GitHub Release, tagged v<version from tauri.conf.json>"
+        description: "Publish a GitHub Release, tagged v<version from tauri.conf.json>. An existing release with that tag is replaced."
         type: boolean
         default: false
 
@@ -17,6 +17,7 @@ permissions:
 
 env:
   CARGO_TERM_COLOR: always
+  LOCALPDF_ENGINE_CACHE: ${{ github.workspace }}/.engine-cache
 
 jobs:
   test:
@@ -41,15 +42,43 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: core
+      - uses: actions/cache@v4
+        with:
+          path: .engine-cache
+          key: engines-${{ matrix.engine }}-${{ hashFiles('scripts/fetch-engines.mjs') }}
       - run: node scripts/fetch-engines.mjs ${{ matrix.engine }}
-      - run: cargo test -p localpdf-core
+      - name: Engine tests (Office conversion runs against the bundled LibreOffice)
+        shell: bash
+        run: |
+          case "${{ matrix.engine }}" in
+            win-x64)   export LOCALPDF_SOFFICE="$PWD/src-tauri/engines/libreoffice/program/soffice.exe" ;;
+            mac-arm64) export LOCALPDF_SOFFICE="$PWD/src-tauri/engines-mac/LibreOffice.app/Contents/MacOS/soffice" ;;
+          esac
+          cargo test -p localpdf-core
       - name: UI typecheck
         if: matrix.os == 'ubuntu-latest'
         run: npm ci && npm run build
 
+  prepare-release:
+    if: github.event_name == 'workflow_dispatch' && inputs.release
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.v.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: v
+        run: echo "tag=v$(node -p "require('./src-tauri/tauri.conf.json').version")" >> "$GITHUB_OUTPUT"
+      - name: Remove an existing release and tag with the same version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete "${{ steps.v.outputs.tag }}" --repo "$GITHUB_REPOSITORY" --cleanup-tag --yes || true
+          git push origin --delete "refs/tags/${{ steps.v.outputs.tag }}" || true
+
   windows:
     name: Windows installer
-    needs: test
+    needs: [test, prepare-release]
+    if: always() && needs.test.result == 'success' && (needs.prepare-release.result == 'success' || needs.prepare-release.result == 'skipped')
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -60,13 +89,14 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: app
-      - id: version
-        shell: bash
-        run: echo "version=$(node -p "require('./src-tauri/tauri.conf.json').version")" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        with:
+          path: .engine-cache
+          key: engines-win-x64-${{ hashFiles('scripts/fetch-engines.mjs') }}
       - run: npm ci
       - run: node scripts/fetch-engines.mjs win-x64
       - run: npx tauri build --bundles nsis
-      - name: Install, check menu, uninstall, check menu is gone
+      - name: Install, check menu and bundled engines, convert Office files, uninstall
         shell: pwsh
         run: |
           $setup = Get-ChildItem target\release\bundle\nsis\*-setup.exe | Select-Object -First 1
@@ -81,12 +111,18 @@ jobs:
           }
           $installDir = Split-Path ($cmd -replace '^"([^"]+)".*', '$1')
           if (-not (Test-Path "$installDir\engines\pdfium.dll")) { throw "pdfium.dll not installed" }
+          $soffice = "$installDir\engines\libreoffice\program\soffice.exe"
+          if (-not (Test-Path $soffice)) { throw "bundled LibreOffice not installed" }
+          $size = (Get-ChildItem $installDir -Recurse | Measure-Object Length -Sum).Sum
+          Write-Host "Installed size: $([math]::Round($size / 1MB)) MB"
+          # Convert Word, Excel and PowerPoint with the installed copy.
+          $env:LOCALPDF_SOFFICE = $soffice
+          cargo test -p localpdf-core --test ops office_to_pdf -- --nocapture
           Start-Process -Wait -FilePath "$installDir\uninstall.exe" -ArgumentList "/S"
-          # The NSIS uninstaller relaunches itself from %TEMP%; wait for it.
           for ($i = 0; $i -lt 60 -and (Test-Path $root); $i++) { Start-Sleep -Milliseconds 500 }
           if (Test-Path $root) { throw "Explorer menu still present after uninstall" }
           if (Test-Path "HKCU:\Software\Classes\SystemFileAssociations\.png\shell\LocalPDF.ToPdf") { throw "image verb still present after uninstall" }
-          Write-Host "Register/unregister round trip OK"
+          Write-Host "Install / convert / uninstall round trip OK"
       - uses: actions/upload-artifact@v4
         with:
           name: LocalPDF-windows-x64
@@ -94,16 +130,29 @@ jobs:
       - if: startsWith(github.ref, 'refs/tags/v') || inputs.release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || format('v{0}', steps.version.outputs.version) }}
+          tag_name: ${{ needs.prepare-release.outputs.tag || github.ref_name }}
           target_commitish: ${{ github.sha }}
-          name: LocalPDF ${{ steps.version.outputs.version }}
-          generate_release_notes: true
+          name: LocalPDF ${{ needs.prepare-release.outputs.tag || github.ref_name }}
+          body_path: .github/RELEASE_NOTES.md
           files: target/release/bundle/nsis/*-setup.exe
 
   macos:
-    name: macOS app (universal)
-    needs: test
-    runs-on: macos-latest
+    name: macOS app (${{ matrix.arch }})
+    needs: [test, prepare-release]
+    if: always() && needs.test.result == 'success' && (needs.prepare-release.result == 'success' || needs.prepare-release.result == 'skipped')
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: aarch64
+            runner: macos-latest
+            triple: aarch64-apple-darwin
+            engine: mac-arm64
+          - arch: x64
+            runner: macos-15-intel
+            triple: x86_64-apple-darwin
+            engine: mac-x64
+    runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -111,24 +160,30 @@ jobs:
           node-version: 22
       - uses: dtolnay/rust-toolchain@stable
         with:
-          targets: aarch64-apple-darwin,x86_64-apple-darwin
+          targets: ${{ matrix.triple }}
       - uses: Swatinem/rust-cache@v2
         with:
-          key: app
-      - id: version
-        shell: bash
-        run: echo "version=$(node -p "require('./src-tauri/tauri.conf.json').version")" >> "$GITHUB_OUTPUT"
+          key: app-${{ matrix.arch }}
+      - uses: actions/cache@v4
+        with:
+          path: .engine-cache
+          key: engines-${{ matrix.engine }}-${{ hashFiles('scripts/fetch-engines.mjs') }}
       - run: npm ci
-      - run: node scripts/fetch-engines.mjs mac-univ
-      - run: npx tauri build --target universal-apple-darwin
-      - name: Register Quick Actions, validate, unregister
+      - run: node scripts/fetch-engines.mjs ${{ matrix.engine }}
+      - run: npx tauri build --target ${{ matrix.triple }} --bundles app
+      - name: Bundle LibreOffice into the app and build the DMG
+        run: scripts/macos-package.sh target/${{ matrix.triple }}/release/bundle/macos/LocalPDF.app ${{ matrix.arch }}
+      - name: Check engines, convert Office files, register and unregister Quick Actions
         run: |
-          APP=$(ls -d target/universal-apple-darwin/release/bundle/macos/*.app | head -1)
+          APP=target/${{ matrix.triple }}/release/bundle/macos/LocalPDF.app
           BIN="$APP/Contents/MacOS/$(ls "$APP/Contents/MacOS" | head -1)"
           test -f "$APP/Contents/Resources/engines/libpdfium.dylib"
+          test -x "$APP/Contents/Resources/LibreOffice.app/Contents/MacOS/soffice"
           lipo -info "$BIN"
+          # Convert Word, Excel and PowerPoint with the copy inside the app.
+          LOCALPDF_SOFFICE="$PWD/$APP/Contents/Resources/LibreOffice.app/Contents/MacOS/soffice" \
+            cargo test -p localpdf-core --test ops office_to_pdf -- --nocapture
           "$BIN" --register
-          ls ~/Library/Services
           n=$(ls -d ~/Library/Services/LocalPDF\ -\ *.workflow | wc -l | tr -d ' ')
           test "$n" = "8"
           for w in ~/Library/Services/LocalPDF\ -\ *.workflow; do
@@ -137,17 +192,16 @@ jobs:
           grep -q "Contents/MacOS" ~/Library/Services/LocalPDF\ -\ Compress.workflow/Contents/document.wflow
           "$BIN" --unregister
           if ls ~/Library/Services/LocalPDF\ -\ *.workflow >/dev/null 2>&1; then echo "still registered"; exit 1; fi
-          echo "Register/unregister round trip OK"
-          du -sh "$APP" target/universal-apple-darwin/release/bundle/dmg/*.dmg
+          echo "Engines / convert / Quick Actions round trip OK"
       - uses: actions/upload-artifact@v4
         with:
-          name: LocalPDF-macos-universal
-          path: target/universal-apple-darwin/release/bundle/dmg/*.dmg
+          name: LocalPDF-macos-${{ matrix.arch }}
+          path: target/dmg/*.dmg
       - if: startsWith(github.ref, 'refs/tags/v') || inputs.release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || format('v{0}', steps.version.outputs.version) }}
+          tag_name: ${{ needs.prepare-release.outputs.tag || github.ref_name }}
           target_commitish: ${{ github.sha }}
-          name: LocalPDF ${{ steps.version.outputs.version }}
-          generate_release_notes: true
-          files: target/universal-apple-darwin/release/bundle/dmg/*.dmg
+          name: LocalPDF ${{ needs.prepare-release.outputs.tag || github.ref_name }}
+          body_path: .github/RELEASE_NOTES.md
+          files: target/dmg/*.dmg

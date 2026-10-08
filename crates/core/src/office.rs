@@ -1,5 +1,6 @@
-//! Office documents -> PDF through a locally installed LibreOffice, run headless
-//! with a throwaway profile. LibreOffice is not bundled: it is ~350 MB.
+//! Office documents -> PDF through LibreOffice, run headless with a throwaway
+//! profile. Release builds ship their own trimmed LibreOffice; development
+//! builds fall back to one installed on the system.
 
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
@@ -12,6 +13,24 @@ pub fn find_soffice() -> Option<PathBuf> {
     if let Some(p) = std::env::var_os("LOCALPDF_SOFFICE") {
         return Some(p.into());
     }
+    bundled_soffice().or_else(system_soffice)
+}
+
+/// The LibreOffice that ships inside LocalPDF: `engines/libreoffice` next to
+/// the app on Windows, `Contents/Resources/LibreOffice.app` on macOS.
+pub fn bundled_soffice() -> Option<PathBuf> {
+    let exe = if cfg!(windows) { "soffice.exe" } else { "soffice" };
+    let mut candidates = Vec::new();
+    for dir in crate::render::engine_dirs() {
+        candidates.push(dir.join("libreoffice").join("program").join(exe));
+        candidates.push(dir.join("LibreOffice.app/Contents/MacOS").join(exe));
+        candidates.push(dir.join("../LibreOffice.app/Contents/MacOS").join(exe));
+    }
+    candidates.into_iter().find(|p| p.is_file())
+}
+
+/// A LibreOffice the user installed themselves (development builds, Linux).
+fn system_soffice() -> Option<PathBuf> {
     let mut candidates: Vec<PathBuf> = Vec::new();
     #[cfg(windows)]
     {
@@ -50,8 +69,8 @@ const TIMEOUT: Duration = Duration::from_secs(180);
 pub fn to_pdf(source: &Path) -> Result<PathBuf> {
     let soffice = find_soffice().ok_or_else(|| {
         LpError::EngineMissing(
-            "Converting Office files needs LibreOffice, which isn't installed. \
-             Install it from libreoffice.org (free), then try again. LocalPDF runs it offline."
+            "The Office converter that ships with LocalPDF is missing from this install. \
+             Reinstall LocalPDF to restore it."
                 .into(),
         )
     })?;

@@ -68,7 +68,7 @@ export function Home() {
         <div className="row">
           <div>
             <div className="label">Office to PDF</div>
-            <div className="state">{info.libreoffice ? "LibreOffice found" : "Needs LibreOffice (free, installs separately)"}</div>
+            <div className="state">{info.libreoffice ? "Built in" : "Converter missing, reinstall LocalPDF"}</div>
           </div>
         </div>
       )}

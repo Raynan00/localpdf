@@ -193,3 +193,29 @@ fn pdf_to_images_word_text() {
     let r = go(Action::Convert, &[a], Options { target: Some(ConvertTarget::Txt), ..Default::default() });
     assert!(r.failures[0].message.contains("no text layer"));
 }
+
+#[test]
+fn office_to_pdf() {
+    if localpdf_core::office::find_soffice().is_none() {
+        eprintln!("LibreOffice not available; skipping Office conversion test");
+        return;
+    }
+    let dir = tempfile::tempdir().unwrap();
+    let fixtures = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures");
+    let mut files = Vec::new();
+    for name in ["report.docx", "budget.xlsx", "slides.pptx"] {
+        let p = dir.path().join(name);
+        fs::copy(fixtures.join(name), &p).unwrap();
+        files.push(p);
+    }
+    let p = plan(Action::Convert, &files).unwrap();
+    assert!(!p.needs_input, "Office files convert in one click");
+    let r = run(&p, &Options::default(), &mut |_| {});
+    assert!(r.failures.is_empty(), "{:?}", r.failures);
+    assert_eq!(r.outputs.len(), 3);
+    for out in &r.outputs {
+        assert!(page_count(out) >= 1, "{} has no pages", out.display());
+    }
+    // slides.pptx has two slides.
+    assert_eq!(page_count(&dir.path().join("slides.pdf")), 2);
+}

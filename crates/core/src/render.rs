@@ -18,7 +18,8 @@ pub fn add_search_dir(dir: PathBuf) {
     SEARCH_DIRS.lock().unwrap().push(dir);
 }
 
-fn candidates() -> Vec<PathBuf> {
+/// Where bundled engines may live, most specific first.
+pub fn engine_dirs() -> Vec<PathBuf> {
     let mut dirs: Vec<PathBuf> = Vec::new();
     if let Some(d) = std::env::var_os("LOCALPDF_PDFIUM_DIR") {
         dirs.push(d.into());
@@ -39,7 +40,7 @@ pub fn pdfium() -> Result<&'static Pdfium> {
         return Ok(p);
     }
     let mut last_err = String::from("not found");
-    for dir in candidates() {
+    for dir in engine_dirs() {
         let lib = Pdfium::pdfium_platform_library_name_at_path(&dir);
         if !lib.exists() {
             continue;

@@ -19,7 +19,7 @@ Most "free PDF tools" are websites that upload your contracts, bank statements a
 - **Private by design:** files never leave your machine, and it works with Wi-Fi off. Here's [how to check that yourself](#how-to-confirm-files-never-leave-your-machine).
 - **No app to open:** it lives in the right-click menu, and dialogs appear only when an action needs input.
 - **Safe:** originals are never modified or overwritten.
-- **Small:** a 5 MB installer on Windows, a 12 MB universal DMG on Mac. Built on qpdf and PDFium, the PDF engine inside Google Chrome.
+- **One install, nothing else:** everything is built in, including the Word, Excel and PowerPoint converter. Built on qpdf, PDFium (the PDF engine inside Google Chrome) and LibreOffice.
 - **Free and open source** (MIT).
 
 Works on **Windows 10, Windows 11 and macOS 11 or later**, on Intel and Apple Silicon.
@@ -42,7 +42,7 @@ LocalPDF uses the WebView2 runtime, which comes with Windows 11 and up-to-date W
 
 ### macOS 11 or later
 
-1. Open `LocalPDF_x.y.z_universal.dmg` and drag LocalPDF to Applications.
+1. Download the DMG for your Mac: `LocalPDF_x.y.z_aarch64.dmg` for Apple Silicon (M1 and later), `LocalPDF_x.y.z_x64.dmg` for Intel. Open it and drag LocalPDF to Applications.
 2. Open LocalPDF once. That first launch adds the Finder Quick Actions. The build isn't notarized yet, so macOS blocks the first launch:
    - **macOS 15 (Sequoia) or later:** open the app, close the warning, then go to **System Settings → Privacy & Security**, scroll down and click **Open Anyway** next to LocalPDF.
    - **macOS 14 or earlier:** right-click the app in Applications, choose **Open**, then **Open** again.
@@ -83,7 +83,7 @@ Selecting several files in Explorer starts one LocalPDF process per file. The fi
 - **Wrong password.** Unlock keeps the dialog open so you can try again.
 - **Invalid page ranges.** Syntax errors, page 0, pages past the end and backwards ranges (`5-2`) are reported inline before anything runs. When several files are selected, the message names the file the range doesn't fit.
 - **Failed merges.** If any input is damaged, encrypted or not a PDF, nothing is written, and the message names the file.
-- **Unsupported conversion inputs.** Unknown file types, folders, mixing PDFs with images or Office files in one Convert, and PDFs without a text layer converted to text (scans) each get a plain explanation. Office conversion without LibreOffice installed says so and links to it.
+- **Unsupported conversion inputs.** Unknown file types, folders, mixing PDFs with images or Office files in one Convert, and PDFs without a text layer converted to text (scans) each get a plain explanation.
 - **Damaged files** are reported per file. The other files in the selection still get processed.
 
 ## Bundled engines
@@ -92,7 +92,7 @@ Selecting several files in Explorer starts one LocalPDF process per file. The fi
 |---|---|---|---|
 | [qpdf](https://github.com/qpdf/qpdf) 12.4 | Merge, split, rotate, encrypt and decrypt, stream recompression, building PDFs from images | Compiled into the app binary from source (`qpdf` crate, `vendored` feature, with its own zlib and libjpeg) | Apache-2.0 |
 | [PDFium](https://pdfium.googlesource.com/pdfium/) chromium/7881 | Page rendering (PNG/JPEG), text extraction, PDF to Word | `pdfium.dll` / `libpdfium.dylib` from [bblanchon/pdfium-binaries](https://github.com/bblanchon/pdfium-binaries), checked against a pinned SHA-256 at build time | BSD-3-Clause and Apache-2.0 (third-party notices in `engines/licenses`) |
-| [LibreOffice](https://www.libreoffice.org) | Office documents to PDF | **Not bundled** (about 350 MB). If installed, LocalPDF runs `soffice --headless` with a throwaway profile. Point `LOCALPDF_SOFFICE` at a custom location | MPL-2.0 |
+| [LibreOffice](https://www.libreoffice.org) 26.8.1 | Word, Excel, PowerPoint and OpenDocument files to PDF | Bundled: the official build, checked against The Document Foundation's published SHA-256, with parts conversion never uses removed (help, galleries, templates, spell dictionaries, Java, Python). Runs as `soffice --headless` with a throwaway profile. Inside `engines\libreoffice` on Windows and `LocalPDF.app/Contents/Resources/LibreOffice.app` on macOS | MPL-2.0 |
 
 Ghostscript isn't included. Its AGPL license and size don't suit a small installer. Compression re-encodes photographic images as JPEG (quality 72, at most 2000 px on the long side), leaves masks, line art and unusual colour spaces alone, recompresses every other stream and packs objects into object streams. If the result isn't at least 3% smaller, LocalPDF says so and writes nothing.
 
@@ -111,7 +111,7 @@ LocalPDF contains no networking code, and you can check that yourself:
 3. **Read the code.** The UI runs under a Content Security Policy that only allows the app's own IPC (`connect-src ipc: http://ipc.localhost`, see `src-tauri/tauri.conf.json`). No updater, analytics or crash-reporting plugins are included (`src-tauri/Cargo.toml`). The engine crate has no HTTP, TLS or async-networking dependency: `cargo tree -p localpdf-core` lists none. The only download in the project is `scripts/fetch-engines.mjs`, which fetches PDFium on the build machine.
 4. **Build it yourself** (below) and compare.
 
-Office conversion runs your installed LibreOffice as a separate `soffice` process with a fresh temporary profile. A headless conversion doesn't go online, and you can block `soffice` the same way if you want to be sure.
+Office conversion runs the LibreOffice that ships inside LocalPDF as a separate `soffice` process with a fresh temporary profile. A headless conversion doesn't go online, and you can block `soffice` the same way if you want to be sure.
 
 ## Build from source
 
@@ -119,12 +119,15 @@ You need Rust (stable), Node 22, and on Linux the [Tauri prerequisites](https://
 
 ```
 npm ci
-node scripts/fetch-engines.mjs            # PDFium for this machine (mac-univ for a universal macOS build)
-npx tauri build                           # Windows: NSIS installer. macOS: .app and .dmg
-npx tauri build --target universal-apple-darwin   # universal macOS build
+node scripts/fetch-engines.mjs win-x64    # PDFium + LibreOffice (mac-arm64 / mac-x64 on a Mac)
+npx tauri build --bundles nsis            # Windows installer
+
+# macOS, per architecture (LibreOffice has no universal build):
+npx tauri build --target aarch64-apple-darwin --bundles app
+scripts/macos-package.sh target/aarch64-apple-darwin/release/bundle/macos/LocalPDF.app aarch64
 ```
 
-Sizes from CI: the Windows installer is 5.0 MB, and the universal macOS DMG is 12 MB (both Intel and Apple Silicon code, 28 MB unpacked). That covers the app binary with qpdf compiled in, plus PDFium.
+Most of the download is LibreOffice; the app itself (qpdf compiled in, plus PDFium) is about 15 MB.
 
 Engine tests, including generated PDFs, encryption round trips, merge failures and range errors:
 
@@ -138,7 +141,7 @@ There's also a command-line front end to the same engine, useful for scripting:
 cargo run -p localpdf-core --bin localpdf-cli -- split --mode ranges --pages "1-3, 4-" report.pdf
 ```
 
-CI (`.github/workflows/build.yml`) runs the engine tests on Windows, macOS and Linux. It also builds the Windows installer, installs it silently, checks the Explorer entries, uninstalls and checks they're gone. On macOS it builds the universal app, registers the Quick Actions, validates every generated plist, then unregisters.
+CI (`.github/workflows/build.yml`) runs the engine tests on Windows, macOS and Linux. It also builds the Windows installer, installs it silently, checks the Explorer entries, uninstalls and checks they're gone. On macOS it builds the Apple Silicon and Intel apps, registers the Quick Actions, validates every generated plist, then unregisters. On both platforms it converts real Word, Excel and PowerPoint files with the bundled LibreOffice.
 
 ## Layout
 

@@ -5,3 +5,4 @@ node_modules
 !/src-tauri/engines/README.md
 /src-tauri/gen
 .DS_Store
+/src-tauri/engines-mac
