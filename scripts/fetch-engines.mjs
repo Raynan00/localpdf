@@ -65,6 +65,22 @@ const LO_PRUNE_MAC = [
   "Contents/Frameworks/LibreOfficePython.framework",
 ];
 
+// Folders where only some entries are kept: translations (English only), icon
+// themes (the default), language registries and autotext. Headless conversion
+// shows no UI, and document languages/fonts are unaffected.
+const LO_KEEP_ONLY_WIN = [
+  { dir: "program/resource", keep: /^en/ },
+  { dir: "share/config", keep: /^(?!images_).*|^images_colibre\.zip$/ },
+  { dir: "share/registry/res", keep: /^registry_en(-US)?\.xcd$|^(?!registry_).*/ },
+  { dir: "share/autotext", keep: /^en-US$/ },
+];
+const LO_KEEP_ONLY_MAC = [
+  { dir: "Contents/Resources/resource", keep: /^en/ },
+  { dir: "Contents/Resources/config", keep: /^(?!images_).*|^images_colibre\.zip$/ },
+  { dir: "Contents/Resources/registry/res", keep: /^registry_en(-US)?\.xcd$|^(?!registry_).*/ },
+  { dir: "Contents/Resources/autotext", keep: /^en-US$/ },
+];
+
 // ---------------------------------------------------------------- setup
 function hostTarget() {
   const arch = process.arch === "arm64" ? "arm64" : "x64";
@@ -104,6 +120,20 @@ function sizeOf(path) {
   return readdirSync(path).reduce((n, f) => n + sizeOf(join(path, f)), 0);
 }
 const mb = (bytes) => `${(bytes / 1024 / 1024).toFixed(0)} MB`;
+
+function keepOnly(base, rules) {
+  let freed = 0;
+  for (const { dir, keep } of rules) {
+    const d = join(base, dir);
+    if (!existsSync(d)) continue;
+    for (const name of readdirSync(d).filter((n) => !keep.test(n))) {
+      const p = join(d, name);
+      freed += sizeOf(p);
+      rmSync(p, { recursive: true, force: true });
+    }
+  }
+  return freed;
+}
 
 function prune(base, patterns) {
   let freed = 0;
@@ -252,7 +282,7 @@ async function fetchLibreOffice() {
       }
       console.log(`LibreOffice unpacked at ${unpacked}`);
       const before = sizeOf(unpacked);
-      const freed = prune(unpacked, LO_PRUNE_WIN);
+      const freed = prune(unpacked, LO_PRUNE_WIN) + keepOnly(unpacked, LO_KEEP_ONLY_WIN);
       cpSync(unpacked, stampDir, { recursive: true });
       console.log(`LibreOffice ${LO_VERSION}: ${mb(before)} unpacked, trimmed ${mb(freed)} -> ${mb(sizeOf(stampDir))}`);
     } else {
@@ -267,7 +297,7 @@ async function fetchLibreOffice() {
         execFileSync("hdiutil", ["detach", mnt, "-force"], { stdio: "inherit" });
       }
       const before = sizeOf(stampDir);
-      const freed = prune(stampDir, LO_PRUNE_MAC);
+      const freed = prune(stampDir, LO_PRUNE_MAC) + keepOnly(stampDir, LO_KEEP_ONLY_MAC);
       // Trimming breaks The Document Foundation's signature; seal it again
       // (ad-hoc, like the app itself) so macOS will run it.
       execFileSync("xattr", ["-cr", stampDir]);
