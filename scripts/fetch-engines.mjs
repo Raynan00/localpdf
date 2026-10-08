@@ -38,7 +38,7 @@ const PDFIUM_SHA256 = {
 
 // LibreOffice: pinned version, verified against the SHA-256 that The Document
 // Foundation publishes next to each file on its primary download server.
-const LO_VERSION = process.env.LOCALPDF_LO_VERSION ?? "26.8.1";
+const LO_VERSION = process.env.LOCALPDF_LO_VERSION ?? "26.8.0";
 const LO_FILES = {
   "win-x64": `win/x86_64/LibreOffice_${LO_VERSION}_Win_x86-64.msi`,
   "mac-arm64": `mac/aarch64/LibreOffice_${LO_VERSION}_MacOS_aarch64.dmg`,
