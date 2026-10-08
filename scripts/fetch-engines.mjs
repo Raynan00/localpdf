@@ -121,6 +121,29 @@ function prune(base, patterns) {
   return freed;
 }
 
+
+function findInstallRoot(dir, rel, depth = 5) {
+  if (existsSync(join(dir, rel))) return dir;
+  if (depth === 0) return null;
+  for (const name of readdirSync(dir)) {
+    const p = join(dir, name);
+    if (statSync(p).isDirectory()) {
+      const hit = findInstallRoot(p, rel, depth - 1);
+      if (hit) return hit;
+    }
+  }
+  return null;
+}
+
+function listTree(dir, depth, prefix = "") {
+  if (depth === 0) return [];
+  return readdirSync(dir).flatMap((name) => {
+    const p = join(dir, name);
+    const isDir = statSync(p).isDirectory();
+    return [prefix + name + (isDir ? "/" : ""), ...(isDir ? listTree(p, depth - 1, prefix + "  ") : [])];
+  });
+}
+
 // ---------------------------------------------------------------- PDFium
 async function fetchPdfium() {
   const lib = target.startsWith("win") ? "pdfium.dll" : target.startsWith("mac") ? "libpdfium.dylib" : "libpdfium.so";
@@ -220,7 +243,14 @@ async function fetchLibreOffice() {
     if (target.startsWith("win")) {
       // Administrative install: unpacks the MSI into a folder, installs nothing.
       execFileSync("msiexec", ["/a", archive, "/qn", `TARGETDIR=${work}`], { stdio: "inherit" });
-      const unpacked = join(work, "LibreOffice");
+      // The admin install mirrors the MSI's directory table (e.g. PFiles\LibreOffice\…);
+      // find the folder that holds program\soffice.exe instead of assuming a layout.
+      const unpacked = findInstallRoot(work, join("program", "soffice.exe"));
+      if (!unpacked) {
+        console.log("Unpacked layout:", listTree(work, 3).join("\n  "));
+        throw new Error("program/soffice.exe not found in the unpacked MSI");
+      }
+      console.log(`LibreOffice unpacked at ${unpacked}`);
       const before = sizeOf(unpacked);
       const freed = prune(unpacked, LO_PRUNE_WIN);
       cpSync(unpacked, stampDir, { recursive: true });
