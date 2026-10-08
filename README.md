@@ -28,7 +28,7 @@ Works on **Windows 10, Windows 11 and macOS 11 or later**, on Intel and Apple Si
 
 ### Windows 10 / 11
 
-1. Run `LocalPDF_x.y.z_x64-setup.exe`. It installs for the current user, so it doesn't need admin rights.
+1. Run `LocalPDF_x.y.z_x64-setup.exe`. It installs for the current user, so it doesn't need admin rights. The installer isn't code-signed yet, so Windows SmartScreen may show "Windows protected your PC": click **More info → Run anyway**.
 2. Right-click a PDF. On Windows 10 the **LocalPDF** submenu is in the main menu. On Windows 11 it's under **Show more options** (or Shift+F10), because Windows 11 only puts signed, packaged shell extensions in its short menu.
 
 The installer adds the menu entries and the uninstaller removes them. Everything is written under `HKCU\Software\Classes\SystemFileAssociations`. To add or remove the entries without reinstalling:
@@ -43,7 +43,10 @@ LocalPDF uses the WebView2 runtime, which comes with Windows 11 and up-to-date W
 ### macOS 11 or later
 
 1. Open `LocalPDF_x.y.z_universal.dmg` and drag LocalPDF to Applications.
-2. Open LocalPDF once. The build is ad-hoc signed and not notarized, so the first launch needs a right-click on the app, then **Open**. That first launch adds the Finder Quick Actions.
+2. Open LocalPDF once. That first launch adds the Finder Quick Actions. The build isn't notarized yet, so macOS blocks the first launch:
+   - **macOS 15 (Sequoia) or later:** open the app, close the warning, then go to **System Settings → Privacy & Security**, scroll down and click **Open Anyway** next to LocalPDF.
+   - **macOS 14 or earlier:** right-click the app in Applications, choose **Open**, then **Open** again.
+   - Or in Terminal: `xattr -dr com.apple.quarantine /Applications/LocalPDF.app`
 3. Right-click a PDF and choose **Quick Actions** → **LocalPDF: …** (also listed under **Services**). If they don't show up, enable them in **System Settings → Privacy & Security → Extensions → Finder**, or use **Quick Actions → Customize…**
 
 The Quick Actions are Automator services in `~/Library/Services/LocalPDF - *.workflow`. Each one hands the selected files to the app. To remove them, open LocalPDF and click **Remove**, or run:
