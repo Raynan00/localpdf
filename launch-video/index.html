@@ -1,0 +1,444 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>LocalPDF launch</title>
+    <!-- Local copy: the render never needs the network. -->
+    <script src="assets/gsap.min.js"></script>
+    <style>
+      @font-face { font-family: "Inter"; src: url("assets/fonts/Inter-Regular.otf"); font-weight: 400; }
+      @font-face { font-family: "Inter"; src: url("assets/fonts/Inter-Medium.otf"); font-weight: 500; }
+      @font-face { font-family: "Inter"; src: url("assets/fonts/Inter-SemiBold.otf"); font-weight: 600; }
+      @font-face { font-family: "Inter Display"; src: url("assets/fonts/InterDisplay-SemiBold.otf"); font-weight: 600; }
+      @font-face { font-family: "Inter Display"; src: url("assets/fonts/InterDisplay-Bold.otf"); font-weight: 700; }
+
+      :root {
+        --bg: #0e0e10;
+        --text: #f2f0eb;
+        --muted: #8b8a90;
+        --faint: #5c5b61;
+        --line: rgba(255, 255, 255, 0.09);
+        --line-strong: rgba(255, 255, 255, 0.28);
+        --field: #151518;
+        --panel: #141417;
+        --accent: #f5a524;
+        --ink: #0e0e10;
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background-color: var(--bg);
+        background-image: radial-gradient(rgba(255, 255, 255, 0.06) 1.5px, transparent 1.8px);
+        background-size: 28px 28px;
+        background-position: 14px 14px;
+        color: var(--text);
+        font-family: "Inter", sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      #root { position: relative; width: 1920px; height: 1080px; }
+      .clip { position: absolute; inset: 0; }
+      .key { color: var(--accent); }
+      .muted { color: var(--muted); }
+      .display { font-family: "Inter Display", "Inter", sans-serif; font-weight: 700; letter-spacing: -0.035em; line-height: 1.02; }
+      .eyebrow { font-size: 26px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+
+      /* ---------- scene 1: hook ---------- */
+      #s1 { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 56px; }
+      #s1 h1 { font-size: 150px; text-align: center; }
+      .file {
+        display: flex; flex-direction: column; align-items: center; gap: 18px;
+      }
+      .doc {
+        position: relative; width: 120px; height: 152px; background: var(--text);
+        clip-path: polygon(0 0, 74% 0, 100% 20%, 100% 100%, 0 100%);
+        border-radius: 6px;
+      }
+      .doc::after {
+        content: ""; position: absolute; right: 0; top: 0; width: 26%; height: 20%;
+        background: #bdbbb6; clip-path: polygon(0 0, 0 100%, 100% 100%);
+      }
+      .doc .tag {
+        position: absolute; left: 14px; bottom: 18px; padding: 4px 10px; border-radius: 6px;
+        background: var(--accent); color: var(--ink); font-weight: 700; font-size: 22px; letter-spacing: 0.04em;
+      }
+      .doc .ln { position: absolute; left: 16px; height: 8px; border-radius: 4px; background: rgba(14,14,16,0.85); }
+      .file .name { font-size: 30px; font-weight: 500; }
+
+      /* ---------- scene 2: problem ---------- */
+      #s2 { padding: 0 200px; display: flex; flex-direction: column; justify-content: center; gap: 18px; }
+      #s2 .item { font-size: 128px; }
+      #s2 .sub { margin-top: 44px; font-size: 46px; font-weight: 500; color: var(--muted); max-width: 1400px; line-height: 1.3; }
+      #s2 .verdict { position: absolute; right: 200px; bottom: 170px; font-size: 96px; }
+
+      /* ---------- scene 3: brand ---------- */
+      #s3 { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 40px; }
+      #s3 .lockup { display: flex; align-items: center; gap: 48px; }
+      #s3 img { width: 200px; height: 200px; }
+      #s3 h1 { font-size: 220px; }
+      #s3 p { font-size: 58px; font-weight: 500; color: var(--muted); }
+
+      /* ---------- shared: desktop demo + app sheet ---------- */
+      .stage-left { position: absolute; left: 0; top: 0; width: 1180px; height: 1080px; }
+      .caption { position: absolute; left: 1230px; top: 0; width: 600px; height: 1080px; display: flex; flex-direction: column; justify-content: center; gap: 26px; }
+      .caption h2 { font-size: 104px; }
+      .caption p { font-size: 44px; font-weight: 500; color: var(--muted); line-height: 1.25; }
+      .desk-file { position: absolute; }
+      .menu {
+        position: absolute; width: 380px; padding: 10px; border-radius: 14px;
+        background: #1c1c20; border: 1px solid rgba(255,255,255,0.10);
+        box-shadow: 0 30px 80px rgba(0,0,0,0.55);
+        font-size: 25px;
+      }
+      .menu .mi { height: 54px; padding: 0 18px; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; color: var(--text); }
+      .menu .mi.dim { color: var(--muted); }
+      .menu .sep { height: 1px; margin: 8px 6px; background: rgba(255,255,255,0.08); }
+      .menu .hl { position: absolute; left: 10px; right: 10px; height: 54px; border-radius: 8px; background: rgba(255,255,255,0.10); }
+      .sheet {
+        position: absolute; width: 760px; padding: 52px 56px 46px; border-radius: 22px;
+        background-color: var(--panel);
+        background-image: radial-gradient(rgba(255,255,255,0.05) 1.4px, transparent 1.7px);
+        background-size: 22px 22px;
+        border: 1px solid rgba(255,255,255,0.09);
+        box-shadow: 0 40px 120px rgba(0,0,0,0.6);
+        display: flex; flex-direction: column; gap: 34px;
+      }
+      .sheet .eb { font-size: 21px; font-weight: 600; letter-spacing: 0.11em; text-transform: uppercase; color: var(--muted); }
+      .sheet .eb .f { color: var(--faint); }
+      .sheet .fn { margin-top: 12px; font-family: "Inter Display", "Inter"; font-weight: 600; font-size: 54px; letter-spacing: -0.02em; }
+      .sheet .lbl { font-size: 20px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 14px; }
+      .chips { display: flex; flex-wrap: wrap; gap: 12px; }
+      .chip { height: 56px; padding: 0 26px; border-radius: 999px; border: 1.5px solid var(--line); display: flex; align-items: center; font-size: 24px; }
+      .chip.on { background: var(--accent); border-color: var(--accent); color: var(--ink); font-weight: 600; }
+      .input { height: 70px; border-radius: 14px; border: 1.5px solid var(--line-strong); background: var(--field); display: flex; align-items: center; padding: 0 22px; font-size: 30px; }
+      .caret { width: 2px; height: 36px; background: var(--text); margin-left: 3px; }
+      .hint { font-size: 22px; color: var(--muted); margin-top: 12px; }
+      .foot { display: flex; justify-content: flex-end; align-items: center; gap: 18px; }
+      .btn { height: 70px; padding: 0 34px; border-radius: 14px; display: flex; align-items: center; font-size: 26px; }
+      .btn.ghost { color: var(--muted); }
+      .btn.primary { background: var(--accent); color: var(--ink); font-weight: 700; }
+      .working { font-size: 30px; }
+      .bar { margin-top: 20px; height: 4px; border-radius: 4px; background: var(--line); overflow: hidden; }
+      .bar i { display: block; height: 100%; width: 100%; background: var(--text); transform-origin: left center; }
+      .out { font-size: 34px; color: var(--accent); }
+      .stat { font-family: "Inter Display", "Inter"; font-weight: 700; font-size: 76px; letter-spacing: -0.03em; }
+      .cursor { position: absolute; width: 44px; height: 44px; z-index: 50; }
+      .click { position: absolute; width: 70px; height: 70px; margin: -35px 0 0 -35px; border-radius: 50%; border: 3px solid var(--text); opacity: 0; z-index: 49; }
+
+
+      /* ---------- scene 4b: Windows + Mac ---------- */
+      #s4b .title { position: absolute; left: 0; right: 0; top: 96px; text-align: center; font-size: 84px; }
+      .win { position: absolute; top: 240px; width: 780px; height: 620px; border-radius: 16px; background: #17171a; border: 1px solid rgba(255,255,255,0.10); box-shadow: 0 40px 120px rgba(0,0,0,0.55); overflow: hidden; }
+      .win .bar { height: 58px; display: flex; align-items: center; padding: 0 20px; gap: 14px; border-bottom: 1px solid rgba(255,255,255,0.07); background: #1d1d21; font-size: 21px; color: var(--muted); }
+      .win .bar .sp { flex: 1; }
+      .tl { width: 15px; height: 15px; border-radius: 50%; background: #4a4a50; }
+      .wc { width: 22px; height: 2px; background: #6a6a70; }
+      .wc.box { height: 16px; background: none; border: 2px solid #6a6a70; width: 18px; }
+      .wc.x { position: relative; background: none; width: 18px; height: 18px; }
+      .wc.x::before, .wc.x::after { content: ""; position: absolute; left: 8px; top: -2px; width: 2px; height: 22px; background: #6a6a70; transform: rotate(45deg); }
+      .wc.x::after { transform: rotate(-45deg); }
+      .win .body { position: relative; height: calc(100% - 58px); }
+      .win .file { position: absolute; left: 70px; top: 60px; transform: scale(0.75); transform-origin: 0 0; }
+      .win .menu { font-size: 22px; width: 280px; }
+      .win .menu .mi { height: 46px; }
+      .win .menu .hl { height: 46px; }
+      .platform { position: absolute; top: 890px; width: 780px; text-align: center; font-size: 34px; font-weight: 600; }
+      .platform span { color: var(--muted); font-weight: 500; }
+
+      /* ---------- scene 6: actions ---------- */
+      #s6 { padding: 0 200px; display: flex; flex-direction: column; justify-content: center; }
+      #s6 .eyebrow { margin-bottom: 36px; }
+      #s6 .act { font-size: 104px; color: var(--faint); }
+
+      /* ---------- scene 7: proof ---------- */
+      #s7 { padding: 0 200px; display: flex; flex-direction: column; justify-content: center; gap: 30px; }
+      #s7 .p { font-size: 110px; }
+
+      /* ---------- scene 8: CTA ---------- */
+      #s8 { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 34px; }
+      #s8 .lockup { display: flex; align-items: center; gap: 40px; }
+      #s8 img { width: 150px; height: 150px; }
+      #s8 h1 { font-size: 170px; }
+      #s8 .sub { font-size: 54px; font-weight: 500; }
+      #s8 .url { margin-top: 20px; font-size: 44px; font-weight: 600; color: var(--accent); }
+      #s8 .fine { font-size: 30px; color: var(--muted); }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="45.2" data-width="1920" data-height="1080">
+
+      <!-- 1. Hook -->
+      <section id="s1" class="clip" data-start="0" data-duration="4.4" data-track-index="0">
+        <div class="file" id="s1-file">
+          <div class="doc"><div class="ln" style="top:30px;width:62px"></div><div class="ln" style="top:50px;width:84px"></div><div class="ln" style="top:70px;width:70px"></div><div class="tag">PDF</div></div>
+          <div class="name">contract.pdf</div>
+        </div>
+        <h1 class="display"><span id="s1-a">Your PDFs</span><br /><span id="s1-b">don't need the <span class="key">internet</span>.</span></h1>
+      </section>
+
+      <!-- 2. Problem -->
+      <section id="s2" class="clip" data-start="4.4" data-duration="5" data-track-index="0">
+        <div class="item display" id="s2-a">Bank statements.</div>
+        <div class="item display" id="s2-b">Contracts.</div>
+        <div class="item display" id="s2-c">Passports.</div>
+        <div class="sub" id="s2-sub">Most “free PDF tools” upload them to someone else's server.</div>
+        <div class="verdict display key" id="s2-v">Not anymore.</div>
+      </section>
+
+      <!-- 3. Brand -->
+      <section id="s3" class="clip" data-start="9.4" data-duration="3.2" data-track-index="0">
+        <div class="lockup"><img id="s3-icon" src="assets/icon.png" alt="" /><h1 class="display" id="s3-name">LocalPDF</h1></div>
+        <p id="s3-tag">Right-click any PDF. On Windows and Mac.</p>
+      </section>
+
+      <!-- 4. Demo: Compress -->
+      <section id="s4" class="clip" data-start="12.6" data-duration="7.4" data-track-index="0">
+        <div class="stage-left">
+          <div class="desk-file file" id="s4-file" style="left:150px;top:300px">
+            <div class="doc"><div class="ln" style="top:30px;width:62px"></div><div class="ln" style="top:50px;width:84px"></div><div class="ln" style="top:70px;width:70px"></div><div class="tag">PDF</div></div>
+            <div class="name">Q3-report.pdf</div>
+          </div>
+          <div class="menu" id="s4-menu" style="left:370px;top:330px">
+            <div class="hl" id="s4-hl1" style="top:206px"></div>
+            <div class="mi">Open</div>
+            <div class="mi">Open with</div>
+            <div class="mi">Share</div>
+            <div class="sep"></div>
+            <div class="mi" style="position:relative">LocalPDF <span>›</span></div>
+            <div class="mi dim">Rename</div>
+          </div>
+          <div class="menu" id="s4-sub" style="left:760px;top:526px;width:410px">
+            <div class="hl" id="s4-hl2" style="top:64px"></div>
+            <div class="mi" style="position:relative">Convert…</div>
+            <div class="mi" style="position:relative">Compress</div>
+            <div class="mi" style="position:relative">Merge selected files</div>
+            <div class="mi" style="position:relative">Split / extract pages…</div>
+            <div class="mi" style="position:relative">Rotate pages…</div>
+            <div class="mi" style="position:relative">Unlock…</div>
+            <div class="mi" style="position:relative">Protect with password…</div>
+          </div>
+          <div class="sheet" id="s4-sheet" style="left:210px;top:310px">
+            <div>
+              <div class="eb" id="s4-eb1">Compress <span class="f">· 2 pages · 10.0 MB</span></div>
+              <div class="fn">Q3-report.pdf</div>
+            </div>
+            <div id="s4-work">
+              <div class="working"><span class="key">Compressing</span> <span class="muted">· Q3-report.pdf</span></div>
+              <div class="bar"><i id="s4-bar"></i></div>
+            </div>
+          </div>
+          <div class="sheet" id="s4-done" style="left:210px;top:270px">
+            <div>
+              <div class="eb">Saved next to the original</div>
+              <div class="fn">Q3-report.pdf</div>
+            </div>
+            <div class="out">Q3-report-compressed.pdf</div>
+            <div class="stat">10.0 MB <span class="muted">→</span> <span class="key" id="s4-after">551 KB</span></div>
+            <div class="foot"><div class="btn ghost">Close</div><div class="btn primary">Show in folder</div></div>
+          </div>
+          <svg class="cursor" id="s4-cursor" viewBox="0 0 24 24" style="left:0;top:0"><path d="M3 2l7.5 19 2.6-7.4L20.5 11z" fill="#f2f0eb" stroke="#0e0e10" stroke-width="1.4" stroke-linejoin="round"/></svg>
+          <div class="click" id="s4-click" style="left:236px;top:386px"></div>
+          <div class="click" id="s4-click2" style="left:876px;top:623px"></div>
+        </div>
+        <div class="caption">
+          <div class="eyebrow" id="s4-c0">One click</div>
+          <h2 class="display" id="s4-c1">Compress</h2>
+          <p id="s4-c2">Right-click, done.<br />Shrunk <span class="key">95%</span>, never uploaded.</p>
+        </div>
+      </section>
+
+      <!-- 4b. Windows and Mac -->
+      <section id="s4b" class="clip" data-start="20" data-duration="6" data-track-index="0">
+        <div class="title display" id="s4b-t">Right where you already <span class="key">right-click</span>.</div>
+        <div class="win" id="w-win" style="left:150px">
+          <div class="bar"><div style="font-weight:600;color:var(--text)">Documents</div><div class="sp"></div><div class="wc"></div><div class="wc box"></div><div class="wc x"></div></div>
+          <div class="body">
+            <div class="file"><div class="doc"><div class="ln" style="top:30px;width:62px"></div><div class="ln" style="top:50px;width:84px"></div><div class="ln" style="top:70px;width:70px"></div><div class="tag">PDF</div></div><div class="name">lease.pdf</div></div>
+            <div class="menu" id="w-m1" style="left:170px;top:70px"><div class="hl" id="w-h1" style="top:174px"></div><div class="mi">Open</div><div class="mi">Open with <span>›</span></div><div class="mi">Share</div><div class="sep"></div><div class="mi" style="position:relative">LocalPDF <span>›</span></div><div class="mi dim">Rename</div></div>
+            <div class="menu" id="w-m2" style="left:440px;top:234px;width:326px"><div class="hl" id="w-h2" style="top:56px"></div><div class="mi" style="position:relative">Convert…</div><div class="mi" style="position:relative">Compress</div><div class="mi" style="position:relative">Merge selected files</div><div class="mi" style="position:relative">Split / extract pages…</div><div class="mi" style="position:relative">Protect with password…</div></div>
+          </div>
+        </div>
+        <div class="platform" id="w-p" style="left:150px">Windows 10 &amp; 11 <span>· File Explorer</span></div>
+        <div class="win" id="m-win" style="left:990px">
+          <div class="bar"><div class="tl"></div><div class="tl"></div><div class="tl"></div><div class="sp" style="text-align:center">Documents</div><div style="width:69px"></div></div>
+          <div class="body">
+            <div class="file"><div class="doc"><div class="ln" style="top:30px;width:62px"></div><div class="ln" style="top:50px;width:84px"></div><div class="ln" style="top:70px;width:70px"></div><div class="tag">PDF</div></div><div class="name">lease.pdf</div></div>
+            <div class="menu" id="m-m1" style="left:170px;top:70px"><div class="hl" id="m-h1" style="top:174px"></div><div class="mi">Open</div><div class="mi">Open With <span>›</span></div><div class="mi">Get Info</div><div class="sep"></div><div class="mi" style="position:relative">Quick Actions <span>›</span></div><div class="mi dim">Rename</div></div>
+            <div class="menu" id="m-m2" style="left:440px;top:234px;width:326px"><div class="hl" id="m-h2" style="top:56px"></div><div class="mi" style="position:relative">LocalPDF: Convert…</div><div class="mi" style="position:relative">LocalPDF: Compress</div><div class="mi" style="position:relative">LocalPDF: Merge</div><div class="mi" style="position:relative">LocalPDF: Split…</div><div class="mi" style="position:relative">LocalPDF: Protect…</div></div>
+          </div>
+        </div>
+        <div class="platform" id="m-p" style="left:990px">macOS <span>· Finder Quick Actions</span></div>
+      </section>
+
+      <!-- 5. Demo: Split -->
+      <section id="s5" class="clip" data-start="26" data-duration="6.4" data-track-index="0">
+        <div class="stage-left">
+          <div class="sheet" id="s5-sheet" style="left:190px;top:170px;width:820px">
+            <div>
+              <div class="eb">Split / extract <span class="f">· 12 pages · 1.4 MB</span></div>
+              <div class="fn">contract.pdf</div>
+            </div>
+            <div>
+              <div class="lbl">Mode</div>
+              <div class="chips"><div class="chip on">Extract into one PDF</div><div class="chip">One PDF per range</div><div class="chip">Every page</div></div>
+            </div>
+            <div>
+              <div class="lbl">Pages <span style="color:var(--faint)">· 1–12</span></div>
+              <div class="input"><span id="s5-typed"></span><div class="caret" id="s5-caret"></div></div>
+              <div class="hint">e.g. 1-3, 5, 8-</div>
+            </div>
+            <div class="foot"><div class="btn ghost">Cancel</div><div class="btn primary" id="s5-btn">Extract pages</div></div>
+          </div>
+          <div class="desk-file file" id="s5-out" style="left:470px;top:410px">
+            <div class="doc"><div class="ln" style="top:30px;width:62px"></div><div class="ln" style="top:50px;width:84px"></div><div class="ln" style="top:70px;width:70px"></div><div class="tag">PDF</div></div>
+            <div class="name key">contract-p2-4.pdf</div>
+          </div>
+        </div>
+        <div class="caption">
+          <div class="eyebrow" id="s5-c0">Only when it needs input</div>
+          <h2 class="display" id="s5-c1">Split</h2>
+          <p id="s5-c2">Type the pages.<br />Get the file, right <span class="key">next to the original</span>.</p>
+        </div>
+      </section>
+
+      <!-- 6. All actions -->
+      <section id="s6" class="clip" data-start="32.4" data-duration="4.4" data-track-index="0">
+        <div class="eyebrow" id="s6-e">Seven actions. One right-click.</div>
+        <div class="act display" id="a1">Merge</div>
+        <div class="act display" id="a2">Compress · Split · Rotate</div>
+        <div class="act display" id="a3">Convert to Word &amp; JPG</div>
+        <div class="act display" id="a4">Unlock · Protect</div>
+      </section>
+
+      <!-- 7. Proof -->
+      <section id="s7" class="clip" data-start="36.8" data-duration="3.8" data-track-index="0">
+        <div class="p display" id="p1">Works with Wi-Fi <span class="key">off</span>.</div>
+        <div class="p display" id="p2">No uploads. No account.</div>
+        <div class="p display" id="p3">No telemetry. <span class="muted">Open source.</span></div>
+      </section>
+
+      <!-- 8. CTA -->
+      <section id="s8" class="clip" data-start="40.6" data-duration="4.6" data-track-index="0">
+        <div class="lockup"><img id="s8-icon" src="assets/icon.png" alt="" /><h1 class="display" id="s8-name">LocalPDF</h1></div>
+        <div class="sub" id="s8-sub">Right-click any PDF. Free for Windows &amp; Mac.</div>
+        <div class="url" id="s8-url">github.com/Raynan00/localpdf</div>
+        <div class="fine" id="s8-fine">5 MB installer · MIT licensed</div>
+      </section>
+    </div>
+
+    <script>
+      const tl = gsap.timeline({ paused: true });
+      const E = "power3.out";
+      const rise = (sel, at, dur = 0.7, y = 50) =>
+        tl.fromTo(sel, { opacity: 0, y }, { opacity: 1, y: 0, duration: dur, ease: E }, at);
+      const out = (sel, at, dur = 0.4) => tl.to(sel, { opacity: 0, y: -30, duration: dur, ease: "power2.in" }, at);
+
+      // 1. Hook (0 - 4.4)
+      tl.fromTo("#s1-file", { opacity: 0, scale: 0.8 }, { opacity: 1, scale: 1, duration: 0.7, ease: "back.out(1.6)" }, 0.2);
+      rise("#s1-a", 0.6);
+      rise("#s1-b", 1.1);
+      out("#s1", 4.0);
+
+      // 2. Problem (4.4 - 9.4)
+      rise("#s2-a", 4.5, 0.55);
+      rise("#s2-b", 4.9, 0.55);
+      rise("#s2-c", 5.3, 0.55);
+      rise("#s2-sub", 6.0, 0.6, 24);
+      tl.to(["#s2-a", "#s2-b", "#s2-c", "#s2-sub"], { opacity: 0.22, duration: 0.5 }, 7.6);
+      tl.fromTo("#s2-v", { opacity: 0, x: 60 }, { opacity: 1, x: 0, duration: 0.6, ease: E }, 7.7);
+      out("#s2", 9.0);
+
+      const B3 = 9.4;
+      // 3. Brand (9.4 - 12.6)
+      tl.fromTo("#s3-icon", { opacity: 0, scale: 0.6, rotation: -8 }, { opacity: 1, scale: 1, rotation: 0, duration: 0.8, ease: "back.out(1.7)" }, B3 + 0.1);
+      tl.fromTo("#s3-name", { opacity: 0, x: -40 }, { opacity: 1, x: 0, duration: 0.7, ease: E }, B3 + 0.35);
+      rise("#s3-tag", B3 + 0.9, 0.6, 24);
+      out("#s3", B3 + 2.8);
+
+      // 4. Compress demo (12.6 - 20)
+      const T4 = 12.6;
+      rise("#s4-file", T4 + 0.1, 0.5, 20);
+      tl.fromTo("#s4-cursor", { x: 700, y: 820, opacity: 0 }, { x: 230, y: 380, opacity: 1, duration: 0.9, ease: "power2.inOut" }, T4 + 0.4);
+      tl.fromTo("#s4-click", { opacity: 0.9, scale: 0.3 }, { opacity: 0, scale: 1.3, duration: 0.45, immediateRender: false }, T4 + 1.35);
+      tl.fromTo("#s4-menu", { opacity: 0, scale: 0.96, transformOrigin: "0 0" }, { opacity: 1, scale: 1, duration: 0.18 }, T4 + 1.4);
+      tl.to("#s4-cursor", { x: 450, y: 560, duration: 0.5, ease: "power2.inOut" }, T4 + 1.7);
+      tl.fromTo("#s4-hl1", { opacity: 0 }, { opacity: 1, duration: 0.1 }, T4 + 2.1);
+      tl.fromTo("#s4-sub", { opacity: 0, x: -10 }, { opacity: 1, x: 0, duration: 0.18 }, T4 + 2.25);
+      tl.to("#s4-cursor", { x: 870, y: 617, duration: 0.5, ease: "power2.inOut" }, T4 + 2.45);
+      tl.fromTo("#s4-hl2", { opacity: 0 }, { opacity: 1, duration: 0.1 }, T4 + 2.9);
+      tl.fromTo("#s4-click2", { opacity: 0.9, scale: 0.3 }, { opacity: 0, scale: 1.3, duration: 0.45, immediateRender: false }, T4 + 3.15);
+      tl.to(["#s4-menu", "#s4-sub", "#s4-cursor", "#s4-file"], { opacity: 0, duration: 0.2 }, T4 + 3.25);
+      tl.fromTo("#s4-sheet", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.35, ease: E }, T4 + 3.35);
+      tl.fromTo("#s4-bar", { scaleX: 0.04 }, { scaleX: 1, duration: 1.2, ease: "power1.inOut" }, T4 + 3.6);
+      tl.to("#s4-sheet", { opacity: 0, duration: 0.2 }, T4 + 4.85);
+      tl.fromTo("#s4-done", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.4, ease: E }, T4 + 4.95);
+      tl.fromTo("#s4-after", { opacity: 0 }, { opacity: 1, duration: 0.3 }, T4 + 5.3);
+      rise("#s4-c0", T4 + 0.3, 0.6, 24);
+      rise("#s4-c1", T4 + 0.45);
+      rise("#s4-c2", T4 + 5.0, 0.6, 24);
+      out("#s4", T4 + 7.0);
+
+      // 4b. Windows and Mac (20 - 26)
+      const T6 = 20;
+      rise("#s4b-t", T6 + 0.1, 0.6, 30);
+      ["w", "m"].forEach((k, i) => {
+        const t = T6 + 0.4 + i * 0.25;
+        tl.fromTo(`#${k}-win`, { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.6, ease: E }, t);
+        rise(`#${k}-p`, t + 0.3, 0.5, 16);
+        const r = t + 1.1 + i * 0.6;
+        tl.fromTo(`#${k}-m1`, { opacity: 0, scale: 0.96, transformOrigin: "0 0" }, { opacity: 1, scale: 1, duration: 0.18 }, r);
+        tl.fromTo(`#${k}-h1`, { opacity: 0 }, { opacity: 1, duration: 0.1 }, r + 0.45);
+        tl.fromTo(`#${k}-m2`, { opacity: 0, x: -10 }, { opacity: 1, x: 0, duration: 0.18 }, r + 0.6);
+        tl.fromTo(`#${k}-h2`, { opacity: 0 }, { opacity: 1, duration: 0.1 }, r + 1.0);
+      });
+      out("#s4b", T6 + 5.6);
+
+      // 5. Split demo (26 - 32.4)
+      const T5 = 26;
+      tl.fromTo("#s5-sheet", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.5, ease: E }, T5 + 0.1);
+      rise("#s5-c0", T5 + 0.3, 0.6, 24);
+      rise("#s5-c1", T5 + 0.45);
+      ["2", "2-", "2-4"].forEach((t, i) => tl.set("#s5-typed", { textContent: t }, T5 + 1.2 + i * 0.28));
+      tl.to("#s5-btn", { scale: 0.94, duration: 0.1 }, T5 + 2.4);
+      tl.to("#s5-btn", { scale: 1, duration: 0.15 }, T5 + 2.5);
+      tl.to("#s5-sheet", { opacity: 0, y: -20, duration: 0.3 }, T5 + 2.75);
+      tl.fromTo("#s5-out", { opacity: 0, scale: 0.7 }, { opacity: 1, scale: 1, duration: 0.6, ease: "back.out(1.8)" }, T5 + 3.0);
+      rise("#s5-c2", T5 + 3.1, 0.6, 24);
+      out("#s5", T5 + 6.0);
+      // Blinking caret, as discrete sets so any frame can be seeked to.
+      for (let t = T5 + 0.6; t < T5 + 2.7; t += 0.5) {
+        tl.set("#s5-caret", { opacity: 0 }, t);
+        tl.set("#s5-caret", { opacity: 1 }, t + 0.25);
+      }
+
+      // 6. Actions (32.4 - 36.8)
+      rise("#s6-e", 32.5, 0.5, 20);
+      ["#a1", "#a2", "#a3", "#a4"].forEach((id, i) => {
+        const at = 32.7 + i * 0.75;
+        rise(id, at, 0.45, 30);
+        tl.to(id, { color: "#f5a524", duration: 0.2 }, at + 0.1);
+        tl.to(id, { color: "#f2f0eb", duration: 0.3 }, at + 0.75);
+      });
+      out("#s6", 36.4);
+
+      // 7. Proof (36.8 - 40.6)
+      rise("#p1", 36.9, 0.55);
+      rise("#p2", 37.5, 0.55);
+      rise("#p3", 38.1, 0.55);
+      out("#s7", 40.2);
+
+      // 8. CTA (40.6 - 45.2)
+      tl.fromTo("#s8-icon", { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.7, ease: "back.out(1.7)" }, 40.7);
+      tl.fromTo("#s8-name", { opacity: 0, x: -40 }, { opacity: 1, x: 0, duration: 0.6, ease: E }, 40.9);
+      rise("#s8-sub", 41.4, 0.5, 24);
+      rise("#s8-url", 41.8, 0.5, 24);
+      rise("#s8-fine", 42.2, 0.5, 18);
+
+      window.__timelines = window.__timelines || {};
+      window.__timelines["main"] = tl;
+      tl.seek(0);
+    </script>
+  </body>
+</html>
