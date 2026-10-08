@@ -43,10 +43,13 @@ fn engine(e: QPdfError) -> LpError {
 /// Write `doc` to `target` (which must not exist yet) via a temp file.
 fn save(doc: &QPdf, target: &Path, configure: impl FnOnce(&mut QPdfWriter)) -> Result<()> {
     let tmp = naming::temp_sibling(target)?;
-    let mut w = doc.writer();
-    w.object_stream_mode(ObjectStreamMode::Preserve);
-    configure(&mut w);
-    w.write(&*tmp).map_err(engine)?;
+    {
+        // The writer must be gone (and its file closed) before the rename.
+        let mut w = doc.writer();
+        w.object_stream_mode(ObjectStreamMode::Preserve);
+        configure(&mut w);
+        w.write(&*tmp).map_err(engine)?;
+    }
     naming::persist(tmp, target)
 }
 

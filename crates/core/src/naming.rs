@@ -58,8 +58,7 @@ pub fn write_atomic(target: &Path, bytes: &[u8]) -> Result<()> {
         .tempfile_in(&dir)
         .map_err(err)?;
     std::io::Write::write_all(&mut tmp, bytes).map_err(err)?;
-    tmp.persist_noclobber(target).map_err(|e| err(e.error))?;
-    Ok(())
+    persist(tmp.into_temp_path(), target)
 }
 
 /// Pick a working path for an engine that insists on writing a file itself.
@@ -73,10 +72,28 @@ pub fn temp_sibling(target: &Path) -> Result<tempfile::TempPath> {
         .map_err(|source| LpError::Write { path: target.to_path_buf(), source })
 }
 
-pub fn persist(tmp: tempfile::TempPath, target: &Path) -> Result<()> {
+pub fn persist(mut tmp: tempfile::TempPath, target: &Path) -> Result<()> {
     // Rename never crosses volumes here: the temp file lives in the target dir.
-    tmp.persist_noclobber(target)
-        .map_err(|e| LpError::Write { path: target.to_path_buf(), source: e.error })
+    // On Windows, antivirus or the search indexer often opens a file the moment
+    // it is written; the rename then fails with a sharing violation for a few
+    // milliseconds. Retry briefly instead of failing the user's action.
+    let mut attempts = 0;
+    loop {
+        match tmp.persist_noclobber(target) {
+            Ok(()) => return Ok(()),
+            Err(e) if attempts < 40 && is_transient_lock(&e.error) => {
+                tmp = e.path;
+                attempts += 1;
+                std::thread::sleep(std::time::Duration::from_millis(50));
+            }
+            Err(e) => return Err(LpError::Write { path: target.to_path_buf(), source: e.error }),
+        }
+    }
+}
+
+fn is_transient_lock(e: &std::io::Error) -> bool {
+    // ERROR_ACCESS_DENIED (5), ERROR_SHARING_VIOLATION (32), ERROR_LOCK_VIOLATION (33)
+    cfg!(windows) && matches!(e.raw_os_error(), Some(5) | Some(32) | Some(33))
 }
 
 /// Zero-padded page label so files sort correctly: p01 … p12.
