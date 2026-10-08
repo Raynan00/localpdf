@@ -56,6 +56,9 @@ const LO_PRUNE_WIN = [
   "share/extensions/wiki-publisher", "share/extensions/nlpsolver",
   "program/classes", "program/python-core-*", "program/python.exe", "program/pythonw.exe",
   "share/extensions/dict-*",
+  // LibreOffice's own updater, its Explorer thumbnail/search add-ons and the
+  // copy of the MSI that an administrative install leaves behind.
+  "*.msi", "program/updater.exe", "program/update_service.exe", "program/shlxthdl",
 ];
 const LO_PRUNE_MAC = [
   "Contents/Resources/help", "Contents/Resources/gallery", "Contents/Resources/template",

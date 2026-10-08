@@ -16,7 +16,7 @@ on:
         type: boolean
         default: false
       msix:
-        description: "Build the Microsoft Store package (MSIX); identity from repo variables MSIX_IDENTITY_NAME, MSIX_PUBLISHER, MSIX_PUBLISHER_DISPLAY_NAME"
+        description: "Build the Microsoft Store package (MSIX) for Partner Center product 9NL235Q73VTR"
         type: boolean
         default: false
 
@@ -200,9 +200,9 @@ jobs:
     if: github.event_name == 'workflow_dispatch' && inputs.msix
     runs-on: windows-latest
     env:
-      MSIX_IDENTITY_NAME: ${{ vars.MSIX_IDENTITY_NAME || 'LocalPDF.Test' }}
-      MSIX_PUBLISHER: ${{ vars.MSIX_PUBLISHER || 'CN=LocalPDF Test' }}
-      MSIX_PUBLISHER_DISPLAY_NAME: ${{ vars.MSIX_PUBLISHER_DISPLAY_NAME || 'LocalPDF' }}
+      MSIX_IDENTITY_NAME: ${{ vars.MSIX_IDENTITY_NAME || 'Raynan.LocalPDF' }}
+      MSIX_PUBLISHER: ${{ vars.MSIX_PUBLISHER || 'CN=6CE95327-903C-4CB6-8182-CC1C7295DE2C' }}
+      MSIX_PUBLISHER_DISPLAY_NAME: ${{ vars.MSIX_PUBLISHER_DISPLAY_NAME || 'Raynan' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
