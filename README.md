@@ -38,6 +38,8 @@ The installer adds the menu entries and the uninstaller removes them. Everything
 "%LOCALAPPDATA%\LocalPDF\LocalPDF.exe" --unregister
 ```
 
+**Blocked by Smart App Control?** Some Windows 11 PCs have Smart App Control turned on. It blocks unsigned installers outright, with no "Run anyway". Until the installer is code-signed, use `LocalPDF_x.y.z_x64-lite-setup.exe` (about 5 MB): the same PDF tools without the bundled Office converter. Lite converts Word, Excel and PowerPoint files when LibreOffice is installed on the PC. Turning Smart App Control off isn't recommended, since Windows can't turn it back on without a reset.
+
 LocalPDF uses the WebView2 runtime, which comes with Windows 11 and up-to-date Windows 10. If it's missing, the installer runs Microsoft's bootstrapper. That is the only download, it happens at install time, and it comes from Microsoft rather than LocalPDF.
 
 ### macOS 11 or later
@@ -127,7 +129,7 @@ npx tauri build --target aarch64-apple-darwin --bundles app
 scripts/macos-package.sh target/aarch64-apple-darwin/release/bundle/macos/LocalPDF.app aarch64
 ```
 
-Download sizes: about 130 MB for the Windows installer (590 MB once installed) and about 190 MB for each Mac disk image (515 MB in Applications). Most of that is LibreOffice, trimmed to what Office conversion needs; the app itself (qpdf compiled in, plus PDFium) is about 15 MB.
+Download sizes: about 130 MB for the Windows installer (590 MB once installed), about 5 MB for Windows Lite, and about 190 MB for each Mac disk image (515 MB in Applications). Most of that is LibreOffice, trimmed to what Office conversion needs; the app itself (qpdf compiled in, plus PDFium) is about 15 MB.
 
 Engine tests, including generated PDFs, encryption round trips, merge failures and range errors:
 

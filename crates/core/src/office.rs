@@ -64,6 +64,27 @@ fn system_soffice() -> Option<PathBuf> {
         .find(|p| p.is_file())
 }
 
+/// A downloaded app carries macOS's "from the internet" mark on every file,
+/// including the LibreOffice nested inside LocalPDF. Approving LocalPDF in
+/// Gatekeeper doesn't always cover a helper it starts later, so drop the mark
+/// from our own bundled copy before running it. Best effort: a read-only
+/// location (e.g. running straight from the disk image) just leaves it as is.
+#[cfg(target_os = "macos")]
+fn clear_quarantine(soffice: &Path) {
+    let Some(app) = soffice.ancestors().find(|p| p.extension().is_some_and(|e| e == "app")) else {
+        return;
+    };
+    if bundled_soffice().as_deref() != Some(soffice) {
+        return; // only ever touch the copy that ships inside LocalPDF
+    }
+    let _ = Command::new("/usr/bin/xattr")
+        .args(["-dr", "com.apple.quarantine"])
+        .arg(app)
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status();
+}
+
 const TIMEOUT: Duration = Duration::from_secs(180);
 
 pub fn to_pdf(source: &Path) -> Result<PathBuf> {
@@ -81,6 +102,9 @@ pub fn to_pdf(source: &Path) -> Result<PathBuf> {
     let profile = url::Url::from_directory_path(work.path().join("profile"))
         .map_err(|_| LpError::Engine("Bad work folder path".into()))?;
     let out_dir = work.path().join("out");
+
+    #[cfg(target_os = "macos")]
+    clear_quarantine(&soffice);
 
     let mut cmd = Command::new(&soffice);
     cmd.arg(format!("-env:UserInstallation={profile}"))
