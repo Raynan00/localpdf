@@ -150,19 +150,41 @@ async function fetchPdfium() {
 }
 
 // ---------------------------------------------------------------- LibreOffice
+async function listVersions(url) {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return [];
+    const html = await res.text();
+    return [...new Set([...html.matchAll(/href="(\d+\.\d+\.\d+(?:\.\d+)?)\/"/g)].map((m) => m[1]))];
+  } catch {
+    return [];
+  }
+}
+
+// TDF's download server (MirrorBrain) publishes hashes in a few forms; accept any.
+async function publishedSha256(fileUrl) {
+  const tries = [fileUrl + ".sha256", fileUrl + "?sha256", fileUrl + ".mirrorlist"];
+  for (const u of tries) {
+    try {
+      const res = await fetch(u);
+      const text = res.ok ? await res.text() : "";
+      const m = text.match(/\b([0-9a-f]{64})\b/i);
+      console.log(`  ${res.status} ${u}${m ? "  -> sha256 found" : ""}`);
+      if (m) return m[1].toLowerCase();
+    } catch (e) {
+      console.log(`  ERR ${u}: ${e.message}`);
+    }
+  }
+  return null;
+}
+
 async function fetchLibreOfficeArchive() {
   const rel = LO_FILES[target];
   const name = rel.split("/").pop();
   for (const base of LO_BASES) {
-    let expected;
-    try {
-      const res = await fetch(base + rel + ".sha256");
-      if (!res.ok) continue;
-      expected = (await res.text()).trim().split(/\s+/)[0].toLowerCase();
-    } catch {
-      continue;
-    }
-    if (!/^[0-9a-f]{64}$/.test(expected)) continue;
+    console.log(`Looking for ${base + rel}`);
+    const expected = await publishedSha256(base + rel);
+    if (!expected) continue;
     const local = join(cache, name);
     if (!existsSync(local) || (await sha256File(local)) !== expected) {
       console.log(`Downloading ${base + rel}`);
@@ -173,7 +195,11 @@ async function fetchLibreOfficeArchive() {
     console.log(`Verified ${name} (sha256 ${digest.slice(0, 16)}…)`);
     return local;
   }
-  throw new Error(`LibreOffice ${LO_VERSION} (${rel}) not found with a published checksum on ${LO_BASES.join(" or ")}`);
+  const stable = await listVersions("https://download.documentfoundation.org/libreoffice/stable/");
+  throw new Error(
+    `LibreOffice ${LO_VERSION} (${rel}) not found with a published checksum.\n` +
+    `Versions on the stable server: ${stable.join(", ") || "(listing unavailable)"}\n` +
+    `Set LO_VERSION in scripts/fetch-engines.mjs (or LOCALPDF_LO_VERSION) to one of them.`);
 }
 
 async function fetchLibreOffice() {
