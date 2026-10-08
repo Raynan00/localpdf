@@ -20,8 +20,9 @@ N = int(SR * DUR)
 rng = np.random.default_rng(20261008)  # fixed seed: identical output every build
 
 # ---------------------------------------------------------------- music edit
-EDIT_AT = 18.70          # video time of the splice (scene change into the labels)
-B_OFFSET = 194.86        # song time = video time + offset after the splice
+A_START = 11.49          # song time at video 0: open on the drop, so the beat runs from frame one
+EDIT_AT = 18.62          # video time of the splice (scene change into the labels), on the beat grid
+B_OFFSET = 194.55        # song time = video time + offset after the splice; final hit lands at 22.23 s
 XFADE = 0.03
 
 def load_music():
@@ -33,12 +34,21 @@ def load_music():
 def music_edit(m):
     out = np.zeros((N, 2))
     e = int(EDIT_AT * SR); x = int(XFADE * SR)
-    out[:e + x] = m[:e + x]
+    a0 = int(A_START * SR)
+    out[:e + x] = m[a0:a0 + e + x]
     b0 = int((EDIT_AT + B_OFFSET) * SR)
     tail = m[b0: b0 + (N - e)]
     ramp = np.linspace(0, 1, x)[:, None]
     out[e:e + x] = out[e:e + x] * (1 - ramp) + tail[:x] * ramp
     out[e + x:e + len(tail)] = tail[x:]
+    # Dip the music under "It does not need to be." so the line lands.
+    t = np.arange(N) / SR
+    duck = np.ones(N)
+    lo = 10 ** (-5 / 20)
+    down = (t >= 6.95) & (t < 7.25); duck[down] = 1 + (lo - 1) * (t[down] - 6.95) / 0.3
+    duck[(t >= 7.25) & (t < 9.6)] = lo
+    up = (t >= 9.6) & (t < 9.95); duck[up] = lo + (1 - lo) * (t[up] - 9.6) / 0.35
+    out *= duck[:, None]
     f = int(0.9 * SR)  # gentle tail-out on the end card
     out[-f:] *= np.linspace(1, 0, f)[:, None] ** 1.6
     return out
@@ -121,8 +131,8 @@ sfx = np.zeros((N, 2))
 place(sfx, whoosh(0.85), 3.12, -15, pan=-0.05)        # photo flies into the browser
 place(sfx, tick(2400, 0.01), 3.98, -22, pan=0.0)       # it lands in the drop zone
 place(sfx, whoosh(0.45, 200, 1600, 0.4), 4.72, -20, pan=0.1)  # cookie panel slides up
-place(sfx, swell(1.05), 6.12, -19)                     # riser into "It does not need to be."
-place(sfx, click(), 11.50, -9, pan=-0.1)               # right-click on the photo (lands on the drop)
+place(sfx, swell(1.05), 6.12, -23)                     # riser into "It does not need to be."
+place(sfx, click(), 11.50, -9, pan=-0.1)               # right-click on the photo (on the beat)
 place(sfx, tick(6200, 0.004), 11.60, -24, pan=0.0)     # menu opens
 place(sfx, tick(5600, 0.003), 12.08, -30, pan=0.05)    # hover moves
 place(sfx, tick(5600, 0.003), 12.40, -30, pan=0.05)
@@ -136,7 +146,7 @@ for k in range(6):                                     # size counts down
 place(sfx, pop(), 16.88, -14, pan=0.5)                 # split stack appears
 place(sfx, paper(), 17.22, -19, pan=0.4)               # pages fan apart
 place(sfx, paper(0.12), 17.27, -21, pan=0.6)
-place(sfx, sub_hit(), 21.94, -12)                      # weight under the wordmark, on the song's last hit
+place(sfx, sub_hit(), 22.23, -12)                      # weight under the wordmark, on the song's last hit
 sfx = reverb(sfx)
 
 wavfile.write("assets/audio/sfx.wav", SR, (np.clip(sfx, -1, 1) * 32767).astype(np.int16))
