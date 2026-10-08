@@ -20,7 +20,7 @@ N = int(SR * DUR)
 rng = np.random.default_rng(20261008)  # fixed seed: identical output every build
 
 # ---------------------------------------------------------------- music edit
-A_START = 11.49          # song time at video 0: open on the drop, so the beat runs from frame one
+A_START = 35.496         # song time at video 0: 8 ms before the drop out of the break, so the full beat hits on frame one (phase-locked to the B section)
 EDIT_AT = 18.62          # video time of the splice (scene change into the labels), on the beat grid
 B_OFFSET = 194.55        # song time = video time + offset after the splice; final hit lands at 22.23 s
 XFADE = 0.03

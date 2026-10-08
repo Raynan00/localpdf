@@ -72,12 +72,16 @@
       /* ---------- photo ---------- */
       #photo {
         left: 0; top: 0; width: 480px; height: 360px; z-index: 4;
-        border: 5px solid #fbfaf7; border-radius: 3px;
+        border-radius: 12px;
         background: url("assets/scan.jpg") center / cover;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.25), 0 18px 40px rgba(0,0,0,0.35), 0 50px 110px rgba(0,0,0,0.35);
+        box-shadow: 0 0 0 1.5px rgba(255,255,255,0.10), 0 2px 4px rgba(0,0,0,0.25), 0 18px 40px rgba(0,0,0,0.35), 0 50px 110px rgba(0,0,0,0.35);
         transform-origin: 50% 50%;
       }
       #photo-meta { left: 0; top: 0; width: 480px; text-align: center; z-index: 4; }
+      /* In the folder the photo is just another file: thumbnail, name, selection. */
+      #photo-name { left: 450px; top: 562px; width: 300px; text-align: center; font-size: 23px; color: var(--text); z-index: 4; }
+      #sel { left: 494px; top: 392px; width: 212px; height: 214px; border-radius: 12px; z-index: 3;
+        background: rgba(255,255,255,0.075); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.10); }
 
       /* ---------- browser ---------- */
       #browser, #cookie-mask { left: 360px; top: 250px; width: 1200px; height: 720px; border-radius: 14px; }
@@ -231,6 +235,8 @@
           <!-- The photo: one element through the first 18.7 s -->
           <div id="photo" class="clip" data-start="0" data-duration="18.8" data-track-index="2" data-hf-motion-blur='{"shutterAngle": 360}'></div>
           <div id="photo-meta" class="meta clip" data-start="0" data-duration="18.8" data-track-index="2">scan.jpg &nbsp;·&nbsp; 1.8 MB</div>
+          <div id="sel" class="clip" data-start="10" data-duration="8.8" data-track-index="7"></div>
+          <div id="photo-name" class="clip" data-start="10" data-duration="8.8" data-track-index="7">scan.jpg</div>
 
           <!-- Cookie panel sits above the photo, clipped to the browser -->
           <div id="cookie-mask" class="clip" data-start="3" data-duration="4.2" data-track-index="1" data-layout-allow-overlap data-layout-allow-occlusion>
@@ -243,14 +249,14 @@
           </div>
 
           <!-- 10 - 14.5 s: right-click -->
-          <div id="menu" class="menu clip" style="left:792px;top:566px" data-start="10" data-duration="4.6" data-track-index="3">
+          <div id="menu" class="menu clip" style="left:624px;top:488px" data-start="10" data-duration="4.6" data-track-index="3">
             <div class="pill" id="pill"></div>
             <div class="mi"><svg viewBox="0 0 18 18" fill="none" stroke="#d4d4d4" stroke-width="1.3"><rect x="2.5" y="3.5" width="13" height="11" rx="1.5"/><path d="M2.5 6.5h13"/></svg>Open</div>
             <div class="mi"><svg viewBox="0 0 18 18" fill="none" stroke="#d4d4d4" stroke-width="1.3"><rect x="2" y="5" width="14" height="8" rx="1.5"/><path d="M6 7.5v3M12.5 3.5v11M11 3.5h3M11 14.5h3"/></svg>Rename</div>
             <div class="sep"></div>
             <div class="mi"><svg viewBox="0 0 18 18" fill="none" stroke="#d4d4d4" stroke-width="1.3"><path d="M4 2.5h7l3 3v10H4z"/><path d="M11 2.5v3h3"/></svg>LocalPDF<svg class="chev" viewBox="0 0 14 14" fill="none" stroke="#bdbdbd" stroke-width="1.4"><path d="M5 3l4 4-4 4"/></svg></div>
           </div>
-          <div id="sub" class="menu clip" style="left:1166px;top:691px" data-start="10" data-duration="4.6" data-track-index="3">
+          <div id="sub" class="menu clip" style="left:998px;top:613px" data-start="10" data-duration="4.6" data-track-index="3">
             <div id="amberbar"></div>
             <div class="mi" id="make">Make PDF</div>
             <div class="mi">Compress</div>
@@ -262,16 +268,16 @@
           <svg id="cursor" class="clip" data-start="10" data-duration="4.6" data-track-index="4" viewBox="0 0 24 24" data-hf-motion-blur='{"shutterAngle": 360}'><path d="M4.5 2.5v16.2l4.1-4 2.7 6.2 2.6-1.1-2.7-6.1h5.8z" fill="#ffffff" stroke="#141413" stroke-width="1.3" stroke-linejoin="round"/></svg>
 
           <!-- 14.5 - 18.5 s: results beside the photo -->
-          <div id="r1" class="file clip" style="left:890px;top:410px" data-start="14.5" data-duration="4.3" data-track-index="5">
+          <div id="r1" class="file clip" style="left:640px;top:400px;width:300px" data-start="14.5" data-duration="4.3" data-track-index="5">
             <div class="pdf"><div class="sh"></div><div class="fold"></div><div class="l" style="top:30px;width:56px"></div><div class="l" style="top:48px;width:76px"></div><div class="l" style="top:66px;width:66px"></div><div class="t">PDF</div></div>
             <div class="name">scan.pdf</div>
           </div>
-          <div id="r2" class="file clip" style="left:1070px;top:410px" data-start="14.5" data-duration="4.3" data-track-index="5">
+          <div id="r2" class="file clip" style="left:880px;top:400px;width:300px" data-start="14.5" data-duration="4.3" data-track-index="5">
             <div class="pdf"><div class="sh"></div><div class="fold"></div><div class="l" style="top:30px;width:56px"></div><div class="l" style="top:48px;width:76px"></div><div class="l" style="top:66px;width:66px"></div><div class="t">PDF</div></div>
             <div class="name">contract-compressed.pdf</div>
             <div class="size" id="sz">14 MB</div>
           </div>
-          <div id="r3" class="clip" style="left:1450px;top:410px;width:116px;height:240px;z-index:4" data-start="14.5" data-duration="4.3" data-track-index="5">
+          <div id="r3" class="clip" style="left:1262px;top:400px;width:116px;height:240px;z-index:4" data-start="14.5" data-duration="4.3" data-track-index="5">
             <div id="stack" data-layout-allow-overlap>
               <div class="pdf" id="pg1"><div class="sh"></div><div class="fold"></div><div class="l" style="top:30px;width:56px"></div><div class="t">P1</div></div>
               <div class="pdf" id="pg2"><div class="sh"></div><div class="fold"></div><div class="l" style="top:30px;width:56px"></div><div class="t">P2</div></div>
@@ -341,7 +347,7 @@
       // Photo layout (top-left of the 480x360 element)
       const P_CENTER = { x: 720, y: 392 };
       const P_DROP = { x: 720, y: 500 };   // centre lands on the drop zone at 0.6 scale
-      const P_LEFT = { x: 420, y: 340, s: 0.72 };  // inside the Desktop folder
+      const P_LEFT = { x: 360, y: 294, s: 0.34 };  // file thumbnail in the Desktop folder, centre (600, 474)
 
       // ---- 0 - 3: the photo on the desktop
       tl.set("#photo", { x: P_CENTER.x, y: P_CENTER.y }, 0);
@@ -370,9 +376,9 @@
 
       // ---- 10 - 14.5: right-click
       tl.set("#photo", { x: P_LEFT.x, y: P_LEFT.y, scale: P_LEFT.s, rotation: 0 }, 10.0);
-      tl.set("#photo-meta", { x: P_LEFT.x, y: P_LEFT.y + 324 }, 10.0);
       tl.fromTo("#photo", { opacity: 0, filter: "blur(12px)", y: P_LEFT.y + 26 }, { opacity: 1, filter: "blur(0px)", y: P_LEFT.y, duration: 1.0, ease: "expo.out", immediateRender: false }, 10.0);
-      tl.fromTo("#photo-meta", { opacity: 0 }, { opacity: 1, duration: 0.6, immediateRender: false }, 10.35);
+      tl.fromTo("#photo-name", { opacity: 0 }, { opacity: 1, duration: 0.6 }, 10.35);
+      tl.set("#sel", { opacity: 0 }, 10.0);
       wordsIn("#l4", 10.2);
       tl.fromTo("#fm", { opacity: 0, y: 30, scale: 0.97, filter: "blur(10px)" }, { opacity: 1, y: 0, scale: 1, filter: "blur(0px)", duration: 1.0, ease: "expo.out" }, 9.95);
       ["2 items", "3 items", "5 items"].forEach((t, i) => tl.set("#cnt", { textContent: t }, [14.75, 15.82, 17.25][i]));
@@ -387,8 +393,8 @@
       tl.set("#sub", { opacity: 0 }, 10.0);
       tl.set(["#rip1", "#rip2"], { opacity: 0, scale: 0 }, 10.0);
       tl.fromTo("#cursor", { opacity: 0, x: 1560, y: 1010 }, { opacity: 1, duration: 0.25, ease: "power1.out" }, 10.45);
-      tl.to("#cursor", { x: 773, duration: 1.0, ease: "power3.inOut" }, 10.45);
-      tl.to("#cursor", { y: 556, duration: 1.0, ease: "power2.inOut" }, 10.45);
+      tl.to("#cursor", { x: 604.5, duration: 1.0, ease: "power3.inOut" }, 10.45);
+      tl.to("#cursor", { y: 478, duration: 1.0, ease: "power2.inOut" }, 10.45);
       const click = (at, x, y, target) => {
         tl.to("#cursor", { scale: 0.86, duration: 0.07, ease: "power2.in", yoyo: true, repeat: 1, transformOrigin: "14% 8%" }, at);
         if (target) tl.to(target, { scale: 0.992, duration: 0.07, ease: "power2.in", yoyo: true, repeat: 1 }, at);
@@ -396,23 +402,25 @@
         tl.fromTo("#rip1", { opacity: 0.7, scale: 0.2 }, { opacity: 0, scale: 2.2, duration: 0.6, ease: "power2.out", immediateRender: false }, at + 0.02);
         tl.fromTo("#rip2", { opacity: 0.45, scale: 0.2 }, { opacity: 0, scale: 3.0, duration: 0.75, ease: "power2.out", immediateRender: false }, at + 0.1);
       };
-      click(11.5, 780, 560, null);
+      click(11.5, 612, 482, null);
+      // Right-clicking selects the file, as a real file manager does.
+      tl.fromTo("#sel", { opacity: 0 }, { opacity: 1, duration: 0.12, ease: "power1.out", immediateRender: false }, 11.5);
 
       // Camera pushes toward the menu while it opens.
-      tl.to("#cam", { scale: 1.1, x: -110, y: 30, duration: 1.5, ease: "power2.inOut" }, 11.3);
+      tl.to("#cam", { scale: 1.1, x: -30, y: 30, duration: 1.5, ease: "power2.inOut" }, 11.3);
 
       // Menu wipes open from the cursor.
       tl.fromTo("#menu", { opacity: 0, y: -6, clipPath: "inset(0% 0% 100% 0% round 11px)" },
         { opacity: 1, y: 0, clipPath: "inset(0% 0% 0% 0% round 11px)", duration: 0.32, ease: "expo.out" }, 11.58);
       // One hover pill glides down the rows with the cursor.
       tl.fromTo("#pill", { opacity: 0, y: 0 }, { opacity: 1, duration: 0.12, ease: "power1.out" }, 12.0);
-      tl.to("#cursor", { x: 880, y: 721, duration: 0.5, ease: "power2.inOut" }, 11.95);
+      tl.to("#cursor", { x: 712, y: 643, duration: 0.5, ease: "power2.inOut" }, 11.95);
       tl.to("#pill", { y: 125, duration: 0.45, ease: "power2.inOut" }, 12.0);
       tl.fromTo("#sub", { opacity: 0, x: -8, clipPath: "inset(0% 100% 0% 0% round 11px)" },
         { opacity: 1, x: 0, clipPath: "inset(0% 0% 0% 0% round 11px)", duration: 0.34, ease: "expo.out" }, 12.59);
-      tl.to("#cursor", { x: 1320, y: 719, duration: 0.48, ease: "power3.inOut" }, 12.66);
+      tl.to("#cursor", { x: 1152, y: 641, duration: 0.48, ease: "power3.inOut" }, 12.66);
       tl.fromTo("#amberbar", { opacity: 0, scaleX: 0.96 }, { opacity: 1, scaleX: 1, duration: 0.2, ease: "power2.out" }, 13.12);
-      click(13.31, 1327, 724, "#amberbar");
+      click(13.31, 1159, 646, "#amberbar");
       tl.to(["#menu", "#sub"], { opacity: 0, scale: 0.985, duration: 0.2, ease: "power2.in" }, 13.75);
       tl.to("#cursor", { opacity: 0, duration: 0.25, ease: "power1.in" }, 13.9);
       tl.to("#cam", { scale: 1, x: 0, y: 0, duration: 1.1, ease: "power3.inOut" }, 13.8);
@@ -431,7 +439,7 @@
       tl.fromTo("#pg1", { x: 0, rotation: 0 }, { x: -64, rotation: -5, duration: settle.duration, ease: settle.ease }, 17.22);
       tl.fromTo("#pg2", { x: 0, rotation: 0 }, { x: 64, rotation: 4, duration: settle.duration, ease: settle.ease }, 17.22);
       tl.fromTo(["#n1", "#n2"], { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.45 }, 17.45);
-      recede(["#photo", "#photo-meta", "#r1", "#r2", "#r3", "#fm"], 18.25, 0.45);
+      recede(["#photo", "#photo-name", "#sel", "#r1", "#r2", "#r3", "#fm"], 18.25, 0.45);
       blurOut("#l5", 18.25, 0.4);
 
       // ---- 18.5 - 22: three words
