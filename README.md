@@ -127,7 +127,7 @@ npx tauri build --target aarch64-apple-darwin --bundles app
 scripts/macos-package.sh target/aarch64-apple-darwin/release/bundle/macos/LocalPDF.app aarch64
 ```
 
-Most of the download is LibreOffice; the app itself (qpdf compiled in, plus PDFium) is about 15 MB.
+Download sizes: about 130 MB for the Windows installer (590 MB once installed) and about 190 MB for each Mac disk image (515 MB in Applications). Most of that is LibreOffice, trimmed to what Office conversion needs; the app itself (qpdf compiled in, plus PDFium) is about 15 MB.
 
 Engine tests, including generated PDFs, encryption round trips, merge failures and range errors:
 

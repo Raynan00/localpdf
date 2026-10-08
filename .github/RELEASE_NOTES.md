@@ -5,9 +5,9 @@ Right-click a PDF to merge, compress, split, rotate, unlock or password-protect 
 Everything is built in, including the Office converter: one installer, nothing else to download, and no internet needed. No uploads, no account, no telemetry.
 
 ### Download
-- **Windows 10 / 11:** `LocalPDF_0.1.0_x64-setup.exe`
-- **Mac with Apple Silicon (M1 and later):** `LocalPDF_0.1.0_aarch64.dmg`
-- **Mac with Intel:** `LocalPDF_0.1.0_x64.dmg`
+- **Windows 10 / 11:** `LocalPDF_0.1.0_x64-setup.exe` (about 130 MB)
+- **Mac with Apple Silicon (M1 and later):** `LocalPDF_0.1.0_aarch64.dmg` (about 190 MB)
+- **Mac with Intel:** `LocalPDF_0.1.0_x64.dmg` (about 190 MB)
 
 ### First launch
 These builds aren't code-signed yet, so your system will ask once:

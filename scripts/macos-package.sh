@@ -21,6 +21,16 @@ ditto "$APP" "$STAGE/LocalPDF.app"
 ln -s /Applications "$STAGE/Applications"
 DMG="$OUT/LocalPDF_${VERSION}_${ARCH}.dmg"
 rm -f "$DMG"
-hdiutil create -volname "LocalPDF" -srcfolder "$STAGE" -ov -format UDZO -imagekey zlib-level=9 "$DMG"
+# hdiutil sometimes fails with "Resource busy" while Spotlight or XProtect is
+# still looking at freshly written files; give it a few tries.
+for attempt in 1 2 3 4 5; do
+  if hdiutil create -volname "LocalPDF" -srcfolder "$STAGE" -ov -format UDZO -imagekey zlib-level=9 "$DMG"; then
+    break
+  fi
+  if [ "$attempt" = 5 ]; then exit 1; fi
+  echo "hdiutil failed (attempt $attempt), retrying"
+  rm -f "$DMG"
+  sleep $((attempt * 10))
+done
 rm -rf "$STAGE"
 du -sh "$APP" "$DMG"
