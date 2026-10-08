@@ -15,6 +15,10 @@ on:
         description: "Also build the Windows Lite installer (no bundled Office converter)"
         type: boolean
         default: false
+      notes:
+        description: "Only update the text of the existing release from .github/RELEASE_NOTES.md (no rebuild)"
+        type: boolean
+        default: false
       msix:
         description: "Build the Microsoft Store package (MSIX) for Partner Center product 9NL235Q73VTR"
         type: boolean
@@ -66,6 +70,18 @@ jobs:
       - name: UI typecheck
         if: matrix.os == 'ubuntu-latest'
         run: npm ci && npm run build
+
+  release-notes:
+    if: github.event_name == 'workflow_dispatch' && inputs.notes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Update the release text in place
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="v$(node -p "require('./src-tauri/tauri.conf.json').version")"
+          gh release edit "$tag" --repo "$GITHUB_REPOSITORY" --notes-file .github/RELEASE_NOTES.md
 
   prepare-release:
     if: github.event_name == 'workflow_dispatch' && inputs.release

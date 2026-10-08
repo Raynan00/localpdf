@@ -28,6 +28,10 @@ Works on **Windows 10, Windows 11 and macOS 11 or later**, on Intel and Apple Si
 
 ### Windows 10 / 11
 
+**Recommended: [get LocalPDF from the Microsoft Store](https://apps.microsoft.com/detail/9NL235Q73VTR).** Microsoft signs the Store version, so it installs with no SmartScreen or Smart App Control warnings and updates automatically. Click **Get**, then right-click any PDF.
+
+Or use the installer from [Releases](https://github.com/Raynan00/localpdf/releases/latest):
+
 1. Run `LocalPDF_x.y.z_x64-setup.exe`. It installs for the current user, so it doesn't need admin rights. The installer isn't code-signed yet, so Windows SmartScreen may show "Windows protected your PC": click **More info → Run anyway**.
 2. Right-click a PDF. On Windows 10 the **LocalPDF** submenu is in the main menu. On Windows 11 it's under **Show more options** (or Shift+F10), because Windows 11 only puts signed, packaged shell extensions in its short menu.
 
@@ -38,7 +42,7 @@ The installer adds the menu entries and the uninstaller removes them. Everything
 "%LOCALAPPDATA%\LocalPDF\LocalPDF.exe" --unregister
 ```
 
-**Blocked by Smart App Control?** Some Windows 11 PCs have Smart App Control turned on. It blocks unsigned installers outright, with no "Run anyway". Until the installer is code-signed, use `LocalPDF_x.y.z_x64-lite-setup.exe` (about 5 MB): the same PDF tools without the bundled Office converter. Lite converts Word, Excel and PowerPoint files when LibreOffice is installed on the PC. Turning Smart App Control off isn't a good workaround: it checks apps every time they run, so LocalPDF would only work while it stays off.
+**Blocked by Smart App Control?** Some Windows 11 PCs have Smart App Control turned on. It blocks unsigned installers outright, with no "Run anyway". Install from the [Microsoft Store](https://apps.microsoft.com/detail/9NL235Q73VTR) instead, or use `LocalPDF_x.y.z_x64-lite-setup.exe` (about 5 MB): the same PDF tools without the bundled Office converter. Lite converts Word, Excel and PowerPoint files when LibreOffice is installed on the PC. Turning Smart App Control off isn't a good workaround: it checks apps every time they run, so LocalPDF would only work while it stays off.
 
 LocalPDF uses the WebView2 runtime, which comes with Windows 11 and up-to-date Windows 10. If it's missing, the installer runs Microsoft's bootstrapper. That is the only download, it happens at install time, and it comes from Microsoft rather than LocalPDF.
 
