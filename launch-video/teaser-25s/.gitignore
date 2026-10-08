@@ -1,2 +1,5 @@
 out/
 snapshots/
+# Licensed music (Pixabay licence: use in the video, do not redistribute the file)
+assets/audio/music-full.mp3
+assets/audio/mix.wav
