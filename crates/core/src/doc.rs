@@ -15,12 +15,13 @@ use crate::naming;
 
 /// Open a PDF read-only. `password` is only needed for files that require one.
 pub fn open(path: &Path, password: Option<&str>) -> Result<QPdf> {
-    if let Err(source) = std::fs::metadata(path) {
-        return Err(LpError::Read { path: path.to_path_buf(), source });
-    }
+    // Read through Rust rather than letting qpdf fopen() the file: CRT handles
+    // are inheritable on Windows, so a converter spawned meanwhile (LibreOffice)
+    // would keep the file locked for as long as it runs.
+    let bytes = std::fs::read(path).map_err(|source| LpError::Read { path: path.to_path_buf(), source })?;
     let res = match password {
-        Some(pw) => QPdf::read_encrypted(path, pw),
-        None => QPdf::read(path),
+        Some(pw) => QPdf::read_from_memory_encrypted(bytes, pw),
+        None => QPdf::read_from_memory(bytes),
     };
     let doc = res.map_err(|e| map_open_error(path, password.is_some(), e))?;
     // Force the page tree to load so damage shows up here, not mid-operation.
@@ -42,15 +43,12 @@ fn engine(e: QPdfError) -> LpError {
 
 /// Write `doc` to `target` (which must not exist yet) via a temp file.
 fn save(doc: &QPdf, target: &Path, configure: impl FnOnce(&mut QPdfWriter)) -> Result<()> {
-    let tmp = naming::temp_sibling(target)?;
-    {
-        // The writer must be gone (and its file closed) before the rename.
-        let mut w = doc.writer();
-        w.object_stream_mode(ObjectStreamMode::Preserve);
-        configure(&mut w);
-        w.write(&*tmp).map_err(engine)?;
-    }
-    naming::persist(tmp, target)
+    // Written in memory for the same reason `open` reads into memory.
+    let mut w = doc.writer();
+    w.object_stream_mode(ObjectStreamMode::Preserve);
+    configure(&mut w);
+    let bytes = w.write_to_memory().map_err(engine)?;
+    naming::write_atomic(target, &bytes)
 }
 
 #[derive(Debug, Clone, serde::Serialize)]
@@ -256,21 +254,18 @@ pub fn compress(source: &Path, level: CompressLevel, target: &Path) -> Result<Co
     if let Some((max_side, quality)) = level.image_params() {
         images = recompress_images(&doc, max_side, quality);
     }
-    let tmp = naming::temp_sibling(target)?;
-    {
-        let mut w = doc.writer();
-        w.object_stream_mode(ObjectStreamMode::Generate)
-            .stream_data_mode(StreamDataMode::Compress)
-            .stream_decode_level(StreamDecodeLevel::Generalized)
-            .compress_streams(true);
-        w.write(&*tmp).map_err(engine)?;
-    }
-    let after = std::fs::metadata(&*tmp).map(|m| m.len()).unwrap_or(u64::MAX);
+    let mut w = doc.writer();
+    w.object_stream_mode(ObjectStreamMode::Generate)
+        .stream_data_mode(StreamDataMode::Compress)
+        .stream_decode_level(StreamDecodeLevel::Generalized)
+        .compress_streams(true);
+    let bytes = w.write_to_memory().map_err(engine)?;
+    let after = bytes.len() as u64;
     // Under 3% saved isn't worth a second copy of the file.
     if after >= before.saturating_sub(before / 33) {
         return Ok(CompressResult { before, after: before, written: false, images_recompressed: images });
     }
-    naming::persist(tmp, target)?;
+    naming::write_atomic(target, &bytes)?;
     Ok(CompressResult { before, after, written: true, images_recompressed: images })
 }
 

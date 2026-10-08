@@ -61,18 +61,7 @@ pub fn write_atomic(target: &Path, bytes: &[u8]) -> Result<()> {
     persist(tmp.into_temp_path(), target)
 }
 
-/// Pick a working path for an engine that insists on writing a file itself.
-pub fn temp_sibling(target: &Path) -> Result<tempfile::TempPath> {
-    let dir = parent(target);
-    tempfile::Builder::new()
-        .prefix(".localpdf-")
-        .suffix(".part")
-        .tempfile_in(&dir)
-        .map(|f| f.into_temp_path())
-        .map_err(|source| LpError::Write { path: target.to_path_buf(), source })
-}
-
-pub fn persist(mut tmp: tempfile::TempPath, target: &Path) -> Result<()> {
+fn persist(mut tmp: tempfile::TempPath, target: &Path) -> Result<()> {
     // Rename never crosses volumes here: the temp file lives in the target dir.
     // On Windows, antivirus or the search indexer often opens a file the moment
     // it is written; the rename then fails with a sharing violation for a few
