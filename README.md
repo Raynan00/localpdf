@@ -1,8 +1,28 @@
-# LocalPDF
+# LocalPDF: offline PDF tools in your right-click menu (Windows and Mac)
 
-Common PDF actions in the Explorer and Finder right-click menu. Every file is processed on your computer: no uploads, no account, no telemetry.
+**Merge, compress, split, rotate, convert, unlock and password-protect PDFs without uploading them anywhere.** LocalPDF adds these actions to the Windows Explorer and macOS Finder right-click menu and processes every file on your own computer. No uploads, no account, no ads, no telemetry. Free and open source.
 
-Right-click one or more PDFs and choose **Convert**, **Compress**, **Merge selected files**, **Split / extract pages**, **Rotate pages**, **Unlock** or **Protect with password**. Images and Office documents get **Convert to PDF**. Results are written next to the originals, which are never modified.
+Most "free PDF tools" are websites that upload your contracts, bank statements and IDs to someone else's server. LocalPDF does the same jobs offline: right-click, pick an action, and the result appears next to the original file.
+
+| You want to… | Right-click → |
+|---|---|
+| Combine several PDFs into one | **Merge selected files** |
+| Make a PDF smaller for email | **Compress** |
+| Pull out some pages, or split a PDF into separate files | **Split / extract pages** |
+| Fix sideways or upside-down pages | **Rotate pages** |
+| Turn a PDF into Word (DOCX), JPG, PNG or text | **Convert** |
+| Turn photos, scans or Word, Excel and PowerPoint files into a PDF | **Convert to PDF** |
+| Remove a password you know | **Unlock** |
+| Add a password (AES-256) | **Protect with password** |
+
+**Why LocalPDF**
+- **Private by design:** files never leave your machine, and it works with Wi-Fi off. Here's [how to check that yourself](#how-to-confirm-files-never-leave-your-machine).
+- **No app to open:** it lives in the right-click menu, and dialogs appear only when an action needs input.
+- **Safe:** originals are never modified or overwritten.
+- **Small:** a 5 MB installer on Windows, a 12 MB universal DMG on Mac. Built on qpdf and PDFium, the PDF engine inside Google Chrome.
+- **Free and open source** (MIT).
+
+Works on **Windows 10, Windows 11 and macOS 11 or later**, on Intel and Apple Silicon.
 
 ## Install
 
@@ -127,6 +147,26 @@ src-tauri/          desktop shell: job windows (app.rs), Explorer registry and F
 ui/                 dialog and status UI (React + Radix ToggleGroup, custom CSS)
 scripts/            fetch-engines.mjs: pinned, checksummed PDFium download
 ```
+
+## FAQ
+
+**Is there a free offline alternative to Adobe Acrobat for merging and compressing PDFs?**
+Yes. LocalPDF merges, compresses, splits, rotates and converts PDFs offline on Windows and Mac for free. It isn't a full editor: it doesn't edit text or fill forms.
+
+**Can I compress a PDF without uploading it?**
+Yes. Right-click the PDF and choose **Compress**. The smaller copy is saved next to the original, and nothing is uploaded.
+
+**Can I convert PDF to Word offline?**
+Yes. Choose **Convert → Word**. Text is extracted into an editable DOCX. Scanned pages are added as images, because LocalPDF doesn't do OCR.
+
+**How do I merge PDFs on Windows or Mac without installing Acrobat?**
+Select the PDFs, right-click, and choose **Merge selected files**. They're combined in file-name order.
+
+**Can it remove a PDF password?**
+Only if you know the password. **Unlock** saves an unprotected copy; it doesn't crack passwords.
+
+**Does it work without internet?**
+Yes, completely. LocalPDF contains no networking code.
 
 ## Not included
 

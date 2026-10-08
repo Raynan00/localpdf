@@ -22,8 +22,8 @@
     "active": true,
     "targets": ["nsis", "app", "dmg"],
     "category": "Productivity",
-    "shortDescription": "Right-click PDF actions, processed locally",
-    "longDescription": "Convert, compress, merge, split, rotate, unlock and protect PDFs from the Explorer or Finder right-click menu. Everything runs on your computer.",
+    "shortDescription": "Offline PDF tools in your right-click menu",
+    "longDescription": "Merge, compress, split, rotate, convert, unlock and password-protect PDFs from the Windows Explorer or macOS Finder right-click menu. Files are processed on your computer and never uploaded.",
     "copyright": "LocalPDF contributors",
     "icon": [
       "icons/32x32.png",

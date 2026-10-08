@@ -2,6 +2,20 @@
   "name": "localpdf",
   "private": true,
   "version": "0.1.0",
+  "description": "Offline PDF tools in your right-click menu: merge, compress, split, rotate, convert, unlock and protect PDFs without uploading them.",
+  "keywords": [
+    "pdf",
+    "offline",
+    "privacy",
+    "merge-pdf",
+    "compress-pdf",
+    "split-pdf",
+    "pdf-to-word",
+    "pdf-to-jpg",
+    "context-menu",
+    "tauri"
+  ],
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "vite",
