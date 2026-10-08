@@ -15,266 +15,1151 @@
         --text: #edebe6;
         --gray: #8d8b86;
         --amber: #f5a524;
+        --dot: #e08a5d;
       }
       * { margin: 0; padding: 0; box-sizing: border-box; }
       html, body {
-        width: 1920px; height: 1080px; overflow: hidden;
-        background: var(--bg) url("assets/dots.svg") 0 0 / 1920px 1080px no-repeat;
-        color: var(--text);
-        font-family: "Inter", sans-serif;
-        -webkit-font-smoothing: antialiased;
+        width: 1920px; height: 1080px; overflow: hidden; background: var(--bg);
+        color: var(--text); font-family: "Inter", sans-serif;
+        -webkit-font-smoothing: antialiased; text-rendering: geometricPrecision;
       }
-      #root { position: relative; width: 1920px; height: 1080px; }
-      .clip { position: absolute; inset: 0; }
+      #root { position: relative; width: 1920px; height: 1080px; overflow: hidden; }
+      .full { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
+      .clip { position: absolute; }
       .amber { color: var(--amber); }
-      .line {
-        position: absolute; left: 0; right: 0; text-align: center;
-        font-family: "Inter Display", "Inter", sans-serif; font-weight: 600;
-        font-size: 64px; letter-spacing: -0.02em;
-        z-index: 10;
-      }
-      .meta { font-size: 26px; color: var(--gray); }
 
-      /* The photo: one element, alive for the whole film until the end beats. */
+      /* ---------- background ---------- */
+      #glow {
+        background:
+          radial-gradient(60% 55% at 50% 58%, rgba(224, 138, 93, 0.07), transparent 70%),
+          radial-gradient(90% 40% at 50% 112%, rgba(224, 138, 93, 0.10), transparent 70%);
+      }
+      #dots { background: url("assets/dots.svg") 0 0 / 1920px 1080px no-repeat; transform-origin: 50% 100%; }
+      #vignette {
+        z-index: 90; pointer-events: none;
+        background: radial-gradient(ellipse at 50% 46%, transparent 52%, rgba(0, 0, 0, 0.55) 100%);
+      }
+      @keyframes grain {
+        0%, 100% { transform: translate(0, 0); } 10% { transform: translate(-5%, -5%); }
+        20% { transform: translate(-10%, 5%); } 30% { transform: translate(5%, -10%); }
+        40% { transform: translate(-5%, 15%); } 50% { transform: translate(-10%, 5%); }
+        60% { transform: translate(15%, 0); } 70% { transform: translate(0, 10%); }
+        80% { transform: translate(-15%, 0); } 90% { transform: translate(10%, 5%); }
+      }
+      #grain { z-index: 100; pointer-events: none; overflow: hidden; }
+      #grain i {
+        position: absolute; left: -50%; top: -50%; width: 200%; height: 200%;
+        background: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+        opacity: 0.055;
+        /* 0.5 s x 50 = the full 25 s: finite, so the runtime can seek it. */
+        animation: grain 0.5s steps(1) 50 both;
+      }
+
+      /* ---------- camera ---------- */
+      #drift, #cam { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
+      #drift { transform-origin: 50% 50%; }
+      #cam { transform-origin: 1150px 720px; }
+
+      /* ---------- type ---------- */
+      .line {
+        position: absolute; left: 0; width: 1920px; text-align: center; z-index: 10;
+        font-family: "Inter Display", "Inter", sans-serif; font-weight: 600;
+        font-size: 62px; letter-spacing: -0.022em; line-height: 1.1;
+      }
+      .w { display: inline-block; will-change: transform, filter, opacity; }
+      .meta { font-size: 24px; color: var(--gray); letter-spacing: 0.01em; }
+
+      /* ---------- photo ---------- */
       #photo {
-        position: absolute; left: 0; top: 0; width: 420px; height: 315px;
-        border: 6px solid #ffffff; border-radius: 4px;
+        left: 0; top: 0; width: 480px; height: 360px; z-index: 4;
+        border: 5px solid #fbfaf7; border-radius: 3px;
         background: url("assets/scan.jpg") center / cover;
-        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.25), 0 18px 40px rgba(0,0,0,0.35), 0 50px 110px rgba(0,0,0,0.35);
         transform-origin: 50% 50%;
       }
-      #photo-meta { position: absolute; left: 0; width: 420px; top: 0; text-align: center; }
+      #photo-meta { left: 0; top: 0; width: 480px; text-align: center; z-index: 4; }
 
-      /* Browser */
+      /* ---------- browser ---------- */
+      #browser, #cookie-mask { left: 360px; top: 250px; width: 1200px; height: 720px; border-radius: 14px; }
       #browser {
-        position: absolute; left: 400px; top: 250px; width: 1120px; height: 700px;
-        border-radius: 14px; overflow: hidden; background: #f4f3f0;
-        box-shadow: 0 40px 120px rgba(0, 0, 0, 0.6); color: #2b2b2b;
+        z-index: 2; overflow: hidden; background: #f6f5f2; color: #2b2b2b;
+        box-shadow: 0 0 0 1px rgba(255,255,255,0.06), 0 30px 60px rgba(0,0,0,0.45), 0 80px 160px rgba(0,0,0,0.45);
       }
-      .chrome { height: 104px; background: #e4e2de; }
-      .tabs { height: 46px; display: flex; align-items: flex-end; padding-left: 92px; gap: 6px; position: relative; }
-      .tabs .lights { position: absolute; left: 20px; top: 18px; display: flex; gap: 8px; }
-      .tabs .lights i { width: 13px; height: 13px; border-radius: 50%; background: #c4c1bb; }
-      .tab { height: 36px; width: 260px; border-radius: 10px 10px 0 0; background: #f4f3f0; font-size: 17px; display: flex; align-items: center; padding: 0 16px; color: #555; }
-      .addr { height: 58px; display: flex; align-items: center; gap: 14px; padding: 0 18px; background: #f4f3f0; }
-      .addr .nav { font-size: 22px; color: #6d6d6d; letter-spacing: 10px; }
-      .url { flex: 1; height: 38px; border-radius: 19px; background: #e8e6e2; display: flex; align-items: center; padding: 0 18px; font-size: 19px; color: #444; }
-      .url .dim { color: #6d6d6d; }
-      .page { position: relative; height: 596px; padding: 34px 60px; }
-      .search { width: 560px; height: 54px; margin: 0 auto; border-radius: 27px; border: 1.5px solid #d3d0ca; background: #fff; display: flex; align-items: center; padding: 0 24px; font-size: 22px; color: #333; }
-      .drop { margin: 30px auto 0; width: 640px; height: 380px; border: 2.5px dashed #c9c5be; border-radius: 16px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; padding-bottom: 26px; gap: 10px; }
-      .drop .btn { padding: 12px 34px; border-radius: 10px; background: #3b3b3b; color: #fff; font-size: 20px; font-weight: 500; }
-      .drop .hint { font-size: 17px; color: #6d6d6d; }
+      #cookie-mask { z-index: 5; overflow: hidden; pointer-events: none; }
+      .chrome { height: 104px; background: #e6e4e0; }
+      .tabs { height: 46px; display: flex; align-items: flex-end; padding-left: 94px; position: relative; }
+      .tabs .lights { position: absolute; left: 22px; top: 18px; display: flex; gap: 8px; }
+      .tabs .lights i { width: 12px; height: 12px; border-radius: 50%; background: #c7c4be; }
+      .tab { height: 36px; width: 280px; border-radius: 10px 10px 0 0; background: #f6f5f2; font-size: 16px; display: flex; align-items: center; gap: 10px; padding: 0 16px; color: #4a4a4a; }
+      .tab .fav { width: 14px; height: 14px; border-radius: 3px; background: #b9b5ae; }
+      .addr { height: 58px; display: flex; align-items: center; gap: 16px; padding: 0 18px; background: #f6f5f2; border-bottom: 1px solid #e3e1dc; }
+      .nav { font-size: 20px; color: #707070; letter-spacing: 12px; }
+      .url { flex: 1; height: 38px; border-radius: 19px; background: #ebe9e5; display: flex; align-items: center; padding: 0 18px; font-size: 18px; color: #3a3a3a; }
+      .url .d { color: #6e6e6e; }
+      .page { position: relative; height: 616px; padding: 36px 0 0; }
+      .site-top { position: absolute; left: 0; right: 0; top: 0; height: 64px; display: flex; align-items: center; padding: 0 36px; gap: 26px; border-bottom: 1px solid #ebe9e4; }
+      .logo-blk { width: 120px; height: 22px; border-radius: 6px; background: #cfcbc4; }
+      .nav-blk { width: 70px; height: 12px; border-radius: 6px; background: #dedad4; }
+      .search { position: absolute; left: 50%; top: 92px; width: 560px; margin-left: -280px; height: 52px; border-radius: 26px; border: 1.5px solid #d6d2cb; background: #fff; display: flex; align-items: center; gap: 14px; padding: 0 22px; font-size: 21px; color: #333; }
+      .search .mag { width: 16px; height: 16px; border: 2px solid #8c8c8c; border-radius: 50%; position: relative; }
+      .search .mag::after { content: ""; position: absolute; width: 2px; height: 7px; background: #8c8c8c; right: -4px; bottom: -6px; transform: rotate(-45deg); }
+      .drop { position: absolute; left: 260px; top: 166px; width: 680px; height: 400px; border: 2px dashed #cbc7c0; border-radius: 18px; background: #fbfaf8; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; padding-bottom: 24px; gap: 8px; }
+      .drop .btn { padding: 11px 32px; border-radius: 10px; background: #3a3a3a; color: #fff; font-size: 18px; font-weight: 500; }
+      .drop .hint { font-size: 15px; color: #6e6e6e; }
+      #dim { position: absolute; left: 0; top: 104px; right: 0; bottom: 0; background: rgba(20, 20, 19, 0.28); }
       #cookie {
-        position: absolute; left: 0; right: 0; bottom: 0; height: 230px; background: #ffffff;
-        box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.18); padding: 34px 60px;
-        display: flex; flex-direction: column; gap: 14px;
+        position: absolute; left: 0; right: 0; bottom: 0; height: 236px; background: #ffffff; color: #1f1f1f;
+        box-shadow: 0 -10px 40px rgba(0,0,0,0.16); padding: 34px 64px; display: flex; flex-direction: column; gap: 12px;
       }
-      #cookie h3 { font-size: 30px; font-weight: 600; font-family: "Inter Display", "Inter"; color: #1f1f1f; }
-      #cookie p { font-size: 18px; color: #6b6b6b; max-width: 820px; line-height: 1.45; }
-      #cookie .row { display: flex; gap: 14px; margin-top: 6px; }
-      #cookie .b { padding: 12px 34px; border-radius: 10px; font-size: 19px; font-weight: 500; }
-      #cookie .agree { background: #2f2f2f; color: #fff; }
-      #cookie .manage { border: 1.5px solid #bdbab4; color: #333; }
+      #cookie h3 { font-family: "Inter Display", "Inter"; font-weight: 600; font-size: 30px; letter-spacing: -0.01em; }
+      #cookie p { font-size: 17px; color: #5f5f5f; max-width: 860px; line-height: 1.5; }
+      #cookie .row { display: flex; gap: 12px; margin-top: 8px; }
+      #cookie .b { padding: 12px 34px; border-radius: 10px; font-size: 18px; font-weight: 500; }
+      #cookie .agree { background: #2b2b2b; color: #fff; }
+      #cookie .manage { border: 1.5px solid #c2beb7; color: #333; }
 
-      /* Explorer-style context menu (Windows 11 look, no logos) */
+      /* ---------- Windows 11-style context menu (no logos) ---------- */
       .menu {
-        position: absolute; padding: 6px; border-radius: 9px;
-        background: #2b2b2b; border: 1px solid rgba(255, 255, 255, 0.08);
-        box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
-        font-size: 21px; color: #f1f1f1;
+        left: 0; top: 0; width: 380px; padding: 8px; border-radius: 11px; z-index: 6;
+        background: rgba(43, 43, 43, 0.86);
+        backdrop-filter: blur(28px) saturate(1.3); -webkit-backdrop-filter: blur(28px) saturate(1.3);
+        border: 1px solid rgba(255, 255, 255, 0.09);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 4px 10px rgba(0,0,0,0.30), 0 22px 60px rgba(0,0,0,0.50);
+        font-size: 24px; color: #f3f3f3;
       }
-      .mi { position: relative; height: 46px; display: flex; align-items: center; gap: 16px; padding: 0 16px; border-radius: 5px; }
-      .mi .ic { width: 20px; height: 20px; border: 1.5px solid #9a9a9a; border-radius: 3px; flex: none; }
-      .mi .chev { margin-left: auto; color: #aaa; }
-      .sep { height: 1px; margin: 5px 8px; background: rgba(255, 255, 255, 0.10); }
-      .mi.hover { background: rgba(255, 255, 255, 0.08); }
-      #hl { position: absolute; left: 6px; right: 6px; top: 6px; height: 46px; border-radius: 5px; background: var(--amber); }
-      #sub .mi { padding-right: 40px; }
-      #make { color: #fff; font-weight: 500; }
-      #cursor { position: absolute; left: 0; top: 0; width: 40px; height: 40px; z-index: 20; }
+      .mi { position: relative; z-index: 1; height: 56px; display: flex; align-items: center; gap: 18px; padding: 0 18px; border-radius: 6px; }
+      .mi svg { width: 22px; height: 22px; flex: none; }
+      .mi .chev { margin-left: auto; width: 16px; height: 16px; }
+      .sep { height: 1px; margin: 6px 8px; background: rgba(255, 255, 255, 0.09); }
+      .pill { position: absolute; left: 8px; right: 8px; top: 8px; height: 56px; border-radius: 6px; background: rgba(255, 255, 255, 0.075); }
+      #amberbar { position: absolute; left: 8px; right: 8px; top: 8px; height: 56px; border-radius: 6px; background: var(--amber); transform-origin: 0 50%; }
+      #make { color: #ffffff; font-weight: 500; }
+      #cursor { left: 0; top: 0; width: 40px; height: 40px; z-index: 30; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.45)); }
+      .ripple { left: 0; top: 0; width: 44px; height: 44px; margin: -22px 0 0 -22px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.75); z-index: 29; }
 
-      /* Result files */
-      .file { position: absolute; display: flex; flex-direction: column; align-items: center; gap: 14px; }
-      .pdf {
-        position: relative; width: 112px; height: 142px; background: var(--text);
-        clip-path: polygon(0 0, 72% 0, 100% 21%, 100% 100%, 0 100%); border-radius: 5px;
-      }
-      .pdf::after { content: ""; position: absolute; right: 0; top: 0; width: 28%; height: 21%; background: #b9b7b2; clip-path: polygon(0 0, 0 100%, 100% 100%); }
-      .pdf .t { position: absolute; left: 12px; bottom: 14px; font-size: 20px; font-weight: 600; color: #141413; letter-spacing: 0.04em; }
-      .pdf .l { position: absolute; left: 14px; height: 7px; border-radius: 4px; background: rgba(20, 20, 19, 0.75); }
-      .file .name { font-size: 24px; }
-      .file .size { font-size: 24px; color: var(--gray); }
-      #stack { position: absolute; width: 112px; height: 142px; }
+      /* ---------- result files ---------- */
+      .file { left: 0; top: 0; display: flex; flex-direction: column; align-items: center; gap: 16px; z-index: 4; }
+      .pdf { position: relative; width: 116px; height: 148px; filter: drop-shadow(0 10px 22px rgba(0,0,0,0.45)); }
+      .pdf .sh { position: absolute; inset: 0; background: #f4f2ed; clip-path: polygon(0 0, 72% 0, 100% 21%, 100% 100%, 0 100%); border-radius: 5px; }
+      .pdf .fold { position: absolute; right: 0; top: 0; width: 28%; height: 21%; background: #c9c6c0; clip-path: polygon(0 0, 0 100%, 100% 100%); }
+      .pdf .l { position: absolute; left: 16px; height: 7px; border-radius: 4px; background: rgba(20,20,19,0.55); }
+      .pdf .t { position: absolute; left: 14px; bottom: 14px; padding: 3px 8px; border-radius: 5px; background: #2a2a28; color: #f4f2ed; font-size: 15px; font-weight: 600; letter-spacing: 0.06em; }
+      .file .name { font-size: 23px; color: var(--text); }
+      .file .size { font-size: 23px; color: var(--gray); font-variant-numeric: tabular-nums; }
+      #stack { position: relative; width: 116px; height: 148px; }
       #stack .pdf { position: absolute; left: 0; top: 0; }
 
-      /* Ending */
-      #labels { position: absolute; left: 0; right: 0; top: 470px; display: flex; justify-content: center; gap: 70px; font-family: "Inter Display", "Inter"; font-weight: 600; font-size: 104px; letter-spacing: -0.03em; }
-      #mark { position: absolute; left: 0; right: 0; top: 420px; display: flex; align-items: center; justify-content: center; gap: 34px; }
-      #mark .page { width: 74px; height: 94px; padding: 0; background: var(--amber); clip-path: polygon(0 0, 70% 0, 100% 24%, 100% 100%, 0 100%); border-radius: 4px; }
-      #mark .word { font-family: "Inter Display", "Inter"; font-weight: 600; font-size: 128px; letter-spacing: -0.035em; color: #ffffff; }
-      #tagline { position: absolute; left: 0; right: 0; top: 580px; text-align: center; font-size: 40px; color: var(--gray); }
+      /* ---------- labels + wordmark ---------- */
+      #labels { left: 0; top: 462px; width: 1920px; display: flex; justify-content: center; gap: 64px; font-family: "Inter Display", "Inter"; font-weight: 600; font-size: 108px; letter-spacing: -0.035em; z-index: 10; }
+      #end { left: 0; top: 0; width: 1920px; height: 1080px; z-index: 10; }
+      #bloom { position: absolute; left: 560px; top: 240px; width: 800px; height: 600px; background: radial-gradient(closest-side, rgba(224,138,93,0.22), transparent 75%); }
+      #mark { position: absolute; left: 0; width: 1920px; top: 432px; display: flex; align-items: center; justify-content: center; gap: 30px; }
+      #mark .pg { position: relative; width: 70px; height: 90px; background: var(--amber); clip-path: polygon(0 0, 62% 0, 100% 30%, 100% 100%, 0 100%); border-radius: 5px; }
+      #mark .pg::after { content: ""; position: absolute; right: 0; top: 0; width: 38%; height: 30%; background: #b87812; clip-path: polygon(0 0, 0 100%, 100% 100%); }
+      #mark .word { font-family: "Inter Display", "Inter"; font-weight: 600; font-size: 124px; letter-spacing: -0.04em; color: #ffffff; }
+      #tagline { position: absolute; left: 0; width: 1920px; top: 586px; text-align: center; font-size: 38px; color: var(--gray); }
     </style>
   </head>
   <body>
-    <div id="root" data-composition-id="main" data-start="0" data-duration="25" data-width="1920" data-height="1080">
+    <div id="root" data-composition-id="main" data-start="0" data-duration="25" data-fps="60" data-width="1920" data-height="1080">
+      <div id="glow" class="full"></div>
+      <div id="dots" class="full"></div>
 
-      <!-- Lines -->
-      <div id="l1" class="line clip" style="top:250px" data-start="0" data-duration="3.2" data-track-index="0">The photo is already on your <span class="amber">desktop</span>.</div>
-      <div id="l2" class="line clip" style="top:110px" data-start="3" data-duration="4.4" data-track-index="0">The PDF site wants it <span class="amber">uploaded</span>.</div>
-      <div id="l3" class="line clip" style="top:490px;font-size:96px" data-start="7" data-duration="3" data-track-index="0">It does not need to be.</div>
-      <div id="l4" class="line clip" style="top:170px" data-start="10" data-duration="4.6" data-track-index="0">Right-click the photo.</div>
-      <div id="l5" class="line clip" style="top:170px" data-start="14.5" data-duration="4.2" data-track-index="0"><span id="b1">Make it a PDF.</span> <span id="b2">Shrink one.</span> <span id="b3">Split one.</span></div>
+      <div id="drift">
+        <div id="cam">
+          <!-- 3 - 7 s: the converter site -->
+          <div id="browser" class="clip" data-start="3" data-duration="4.2" data-track-index="1">
+            <div class="chrome">
+              <div class="tabs"><div class="lights"><i></i><i></i><i></i></div><div class="tab"><span class="fav"></span>Free JPG to PDF Converter</div></div>
+              <div class="addr"><div class="nav">‹ › ↻</div><div class="url"><span class="d">https://www.</span>free-file-converter-online.example<span class="d">/jpg-to-pdf</span></div></div>
+            </div>
+            <div class="page">
+              <div class="site-top"><div class="logo-blk"></div><div class="sp" style="flex:1"></div><div class="nav-blk"></div><div class="nav-blk"></div><div class="nav-blk"></div></div>
+              <div class="search"><span class="mag"></span>jpg to pdf</div>
+              <div class="drop" data-layout-allow-occlusion data-layout-allow-overlap><div class="btn">Upload file</div><div class="hint" data-layout-allow-occlusion data-layout-allow-overlap>Max 10 MB · Files stored for 24 hours</div></div>
+            </div>
+          </div>
 
-      <!-- Browser (3 - 7s) -->
-      <div id="browser" class="clip" style="inset:auto;left:400px;top:250px" data-start="3" data-duration="4.4" data-track-index="1">
-        <div class="chrome">
-          <div class="tabs"><div class="lights"><i></i><i></i><i></i></div><div class="tab">Free JPG to PDF Online</div></div>
-          <div class="addr"><div class="nav">‹ › ↻</div><div class="url"><span class="dim">https://www.</span>free-file-converter-online.example<span class="dim">/jpg-to-pdf</span></div></div>
-        </div>
-        <div class="page">
-          <div class="search">jpg to pdf</div>
-          <div class="drop" data-layout-allow-occlusion data-layout-allow-overlap><div class="btn">Upload file</div><div class="hint" data-layout-allow-overlap data-layout-allow-occlusion>Max 10 MB · Files stored for 24 hours</div></div>
-          <div id="cookie" data-layout-allow-overlap data-layout-allow-occlusion>
-            <h3>We care about your privacy</h3>
-            <p>We and our 847 partners use cookies to store and access information on your device, and to process your uploaded files for personalised ads and analytics.</p>
-            <div class="row"><div class="b agree">Agree</div><div class="b manage">Manage</div></div>
+          <!-- The photo: one element through the first 18.7 s -->
+          <div id="photo" class="clip" data-start="0" data-duration="18.8" data-track-index="2" data-hf-motion-blur='{"shutterAngle": 360}'></div>
+          <div id="photo-meta" class="meta clip" data-start="0" data-duration="18.8" data-track-index="2">scan.jpg &nbsp;·&nbsp; 1.8 MB</div>
+
+          <!-- Cookie panel sits above the photo, clipped to the browser -->
+          <div id="cookie-mask" class="clip" data-start="3" data-duration="4.2" data-track-index="1" data-layout-allow-overlap data-layout-allow-occlusion>
+            <div id="dim"></div>
+            <div id="cookie" data-layout-allow-overlap data-layout-allow-occlusion>
+              <h3>We care about your privacy</h3>
+              <p>We and our 847 partners store and access information on your device, and process the files you upload for personalised ads and analytics.</p>
+              <div class="row"><div class="b agree">Agree</div><div class="b manage">Manage</div></div>
+            </div>
+          </div>
+
+          <!-- 10 - 14.5 s: right-click -->
+          <div id="menu" class="menu clip" style="left:912px;top:618px" data-start="10" data-duration="4.6" data-track-index="3">
+            <div class="pill" id="pill"></div>
+            <div class="mi"><svg viewBox="0 0 18 18" fill="none" stroke="#d4d4d4" stroke-width="1.3"><rect x="2.5" y="3.5" width="13" height="11" rx="1.5"/><path d="M2.5 6.5h13"/></svg>Open</div>
+            <div class="mi"><svg viewBox="0 0 18 18" fill="none" stroke="#d4d4d4" stroke-width="1.3"><rect x="2" y="5" width="14" height="8" rx="1.5"/><path d="M6 7.5v3M12.5 3.5v11M11 3.5h3M11 14.5h3"/></svg>Rename</div>
+            <div class="sep"></div>
+            <div class="mi"><svg viewBox="0 0 18 18" fill="none" stroke="#d4d4d4" stroke-width="1.3"><path d="M4 2.5h7l3 3v10H4z"/><path d="M11 2.5v3h3"/></svg>LocalPDF<svg class="chev" viewBox="0 0 14 14" fill="none" stroke="#bdbdbd" stroke-width="1.4"><path d="M5 3l4 4-4 4"/></svg></div>
+          </div>
+          <div id="sub" class="menu clip" style="left:1286px;top:743px" data-start="10" data-duration="4.6" data-track-index="3">
+            <div id="amberbar"></div>
+            <div class="mi" id="make">Make PDF</div>
+            <div class="mi">Compress</div>
+            <div class="mi">Split</div>
+            <div class="mi">Convert to Word</div>
+          </div>
+          <div id="rip1" class="ripple clip" data-start="10" data-duration="4.6" data-track-index="4"></div>
+          <div id="rip2" class="ripple clip" data-start="10" data-duration="4.6" data-track-index="4"></div>
+          <svg id="cursor" class="clip" data-start="10" data-duration="4.6" data-track-index="4" viewBox="0 0 24 24" data-hf-motion-blur='{"shutterAngle": 360}'><path d="M4.5 2.5v16.2l4.1-4 2.7 6.2 2.6-1.1-2.7-6.1h5.8z" fill="#ffffff" stroke="#141413" stroke-width="1.3" stroke-linejoin="round"/></svg>
+
+          <!-- 14.5 - 18.5 s: results beside the photo -->
+          <div id="r1" class="file clip" style="left:1100px;top:440px" data-start="14.5" data-duration="4.3" data-track-index="5">
+            <div class="pdf"><div class="sh"></div><div class="fold"></div><div class="l" style="top:30px;width:56px"></div><div class="l" style="top:48px;width:76px"></div><div class="l" style="top:66px;width:66px"></div><div class="t">PDF</div></div>
+            <div class="name">scan.pdf</div>
+          </div>
+          <div id="r2" class="file clip" style="left:1300px;top:440px" data-start="14.5" data-duration="4.3" data-track-index="5">
+            <div class="pdf"><div class="sh"></div><div class="fold"></div><div class="l" style="top:30px;width:56px"></div><div class="l" style="top:48px;width:76px"></div><div class="l" style="top:66px;width:66px"></div><div class="t">PDF</div></div>
+            <div class="name">contract-compressed.pdf</div>
+            <div class="size" id="sz">14 MB</div>
+          </div>
+          <div id="r3" class="clip" style="left:1660px;top:440px;width:116px;height:240px;z-index:4" data-start="14.5" data-duration="4.3" data-track-index="5">
+            <div id="stack">
+              <div class="pdf" id="pg1"><div class="sh"></div><div class="fold"></div><div class="l" style="top:30px;width:56px"></div><div class="t">P1</div></div>
+              <div class="pdf" id="pg2"><div class="sh"></div><div class="fold"></div><div class="l" style="top:30px;width:56px"></div><div class="t">P2</div></div>
+            </div>
+            <div class="meta" id="n1" style="position:absolute;top:164px;left:-58px;font-size:23px;color:var(--text)">p1.pdf</div>
+            <div class="meta" id="n2" style="position:absolute;top:164px;left:96px;font-size:23px;color:var(--text)">p2.pdf</div>
           </div>
         </div>
       </div>
 
-      <!-- The photo, present from 0s through the result beats -->
-      <div id="photo" class="clip" style="inset:auto" data-start="0" data-duration="18.9" data-track-index="2"></div>
-      <div id="photo-meta" class="meta clip" style="inset:auto" data-start="0" data-duration="18.9" data-track-index="2">scan.jpg &nbsp;·&nbsp; 1.8 MB</div>
+      <!-- Screen-locked lines -->
+      <div id="l1" class="line clip" style="top:226px" data-start="0" data-duration="3.1" data-track-index="0"><span class="w">The</span> <span class="w">photo</span> <span class="w">is</span> <span class="w">already</span> <span class="w">on</span> <span class="w">your</span> <span class="w" id="k1">desktop.</span></div>
+      <div id="l2" class="line clip" style="top:118px" data-start="3" data-duration="4.2" data-track-index="0"><span class="w">The</span> <span class="w">PDF</span> <span class="w">site</span> <span class="w">wants</span> <span class="w">it</span> <span class="w" id="k2">uploaded.</span></div>
+      <div id="l3" class="line clip" style="top:486px;font-size:100px;letter-spacing:-0.035em" data-start="7" data-duration="3" data-track-index="0"><span class="w">It</span> <span class="w">does</span> <span class="w">not</span> <span class="w">need</span> <span class="w">to</span> <span class="w">be.</span></div>
+      <div id="l4" class="line clip" style="top:110px" data-start="10" data-duration="4.6" data-track-index="0"><span class="w">Right-click</span> <span class="w">the</span> <span class="w">photo.</span></div>
+      <div id="l5" class="line clip" style="top:190px" data-start="14.5" data-duration="4.3" data-track-index="0"><span class="w" id="b1">Make it a PDF.</span> <span class="w" id="b2">Shrink one.</span> <span class="w" id="b3">Split one.</span></div>
+      <div id="labels" class="clip" data-start="18.5" data-duration="3.5" data-track-index="0"><span class="w" id="w1">Photos.</span><span class="w amber" id="w2">Contracts.</span><span class="w" id="w3">Scans.</span></div>
 
-      <!-- Menu (10 - 14.5s) -->
-      <div id="menu" class="menu clip" style="inset:auto;left:800px;top:572px;width:300px" data-start="10" data-duration="4.5" data-track-index="3">
-        <div class="mi"><span class="ic"></span>Open</div>
-        <div class="mi"><span class="ic"></span>Rename</div>
-        <div class="sep"></div>
-        <div class="mi" id="lp"><span class="ic"></span>LocalPDF<span class="chev">›</span></div>
-      </div>
-      <div id="sub" class="menu clip" style="inset:auto;left:1094px;top:675px;width:290px" data-start="10" data-duration="4.5" data-track-index="3">
-        <div id="hl"></div>
-        <div class="mi" id="make">Make PDF</div>
-        <div class="mi">Compress</div>
-        <div class="mi">Split</div>
-        <div class="mi">Convert to Word</div>
-      </div>
-      <svg id="cursor" class="clip" style="inset:auto" data-start="10" data-duration="4.5" data-track-index="4" viewBox="0 0 24 24"><path d="M3 2l7.5 19 2.6-7.4L20.5 11z" fill="#ffffff" stroke="#141413" stroke-width="1.4" stroke-linejoin="round"/></svg>
-
-      <!-- Results (14.5 - 18.5s) -->
-      <div id="r1" class="file clip" style="inset:auto;left:1010px;top:470px" data-start="14.5" data-duration="4.4" data-track-index="5">
-        <div class="pdf"><div class="l" style="top:28px;width:58px"></div><div class="l" style="top:46px;width:78px"></div><div class="t">PDF</div></div>
-        <div class="name">scan.pdf</div>
-      </div>
-      <div id="r2" class="file clip" style="inset:auto;left:1200px;top:470px" data-start="14.5" data-duration="4.4" data-track-index="5">
-        <div class="pdf"><div class="l" style="top:28px;width:58px"></div><div class="l" style="top:46px;width:78px"></div><div class="t">PDF</div></div>
-        <div class="name">contract-compressed.pdf</div>
-        <div class="size"><span id="sz">14</span> MB</div>
-      </div>
-      <div id="r3" class="clip" style="inset:auto;left:1630px;top:470px;width:200px;height:240px" data-start="14.5" data-duration="4.4" data-track-index="5">
-        <div id="stack">
-          <div class="pdf" id="pg1"><div class="l" style="top:28px;width:58px"></div><div class="t">P1</div></div>
-          <div class="pdf" id="pg2"><div class="l" style="top:28px;width:58px"></div><div class="t">P2</div></div>
-        </div>
-        <div class="meta" id="n1" style="position:absolute;top:160px;left:-46px;font-size:24px;color:var(--text)">p1.pdf</div>
-        <div class="meta" id="n2" style="position:absolute;top:160px;left:90px;font-size:24px;color:var(--text)">p2.pdf</div>
-      </div>
-
-      <!-- Labels (18.5 - 22s) -->
-      <div id="labels" class="clip" style="inset:auto;left:0;right:0;top:470px" data-start="18.5" data-duration="3.6" data-track-index="0">
-        <span id="w1">Photos.</span><span id="w2" class="amber">Contracts.</span><span id="w3">Scans.</span>
-      </div>
-
-      <!-- Wordmark (22 - 25s) -->
+      <!-- 22 - 25 s: wordmark -->
       <div id="end" class="clip" data-start="22" data-duration="3" data-track-index="0">
-        <div id="mark"><div class="page"></div><div class="word">LocalPDF</div></div>
-        <div id="tagline">The file stays here.</div>
+        <div id="bloom"></div>
+        <div id="mark"><div class="pg"></div><div class="word"><span class="w">LocalPDF</span></div></div>
+        <div id="tagline"><span class="w">The file stays here.</span></div>
       </div>
+
+      <div id="vignette" class="full"></div>
+      <div id="grain" class="full"><i></i></div>
     </div>
 
     <script>
-      const tl = gsap.timeline({ paused: true });
-      const E = "power3.out";
-      const fade = (sel, at, dur = 0.5) => tl.fromTo(sel, { opacity: 0 }, { opacity: 1, duration: dur, ease: "power1.out" }, at);
-      const fadeOut = (sel, at, dur = 0.35) => tl.to(sel, { opacity: 0, duration: dur, ease: "power1.in" }, at);
+      // A damped spring's exact curve as a seek-safe ease (HyperFrames motion guide).
+      function springEase({ response = 0.5, dampingFraction = 1 } = {}) {
+        const w = (2 * Math.PI) / response, z = dampingFraction;
+        let pos;
+        if (z < 1) { const wd = w * Math.sqrt(1 - z * z); pos = (t) => 1 - Math.exp(-z * w * t) * (Math.cos(wd * t) + ((z * w) / wd) * Math.sin(wd * t)); }
+        else { pos = (t) => 1 - Math.exp(-w * t) * (1 + w * t); }
+        const rate = z <= 1 ? z * w : w, SCAN = 12 / rate, N = 4800;
+        let T = SCAN;
+        for (let i = N; i >= 0; i--) { const t = (i / N) * SCAN; if (Math.abs(1 - pos(t)) > 0.001) { T = ((i + 1) / N) * SCAN; break; } }
+        const xT = pos(T);
+        return { duration: T, ease: (p) => pos(p * T) + p * (1 - xT) };
+      }
+      const settle = springEase({ response: 0.5, dampingFraction: 0.86 });
+      const soft = springEase({ response: 0.6, dampingFraction: 1 });
 
-      // Photo positions (x/y of the top-left corner; the element itself sits at 0,0).
-      const CENTER = { x: 750, y: 383 };   // centred on the frame
-      const DROP = { x: 744, y: 477 };     // inside the browser's drop zone
-      const LEFT = { x: 520, y: 430 };     // beside the context menu and results
+      const tl = gsap.timeline({ paused: true, defaults: { ease: "power3.out" } });
+      const AMBER = "#f5a524", TEXT = "#edebe6", DIM = "#57554f";
 
-      // 0 - 3: the photo on the desktop
-      tl.set("#photo", { x: CENTER.x, y: CENTER.y, scale: 1 }, 0);
-      tl.set("#photo-meta", { x: CENTER.x, y: CENTER.y + 345 }, 0);
-      fade(["#photo", "#photo-meta"], 0, 0.4);
-      tl.fromTo("#l1", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.8, ease: E }, 0.4);
-      fadeOut("#l1", 2.8, 0.3);
+      // Text in: per-word lift + soft focus pull.
+      const wordsIn = (sel, at, stagger = 0.055, dur = 0.9) =>
+        tl.fromTo(`${sel} .w`, { opacity: 0, y: 22, filter: "blur(10px)" },
+          { opacity: 1, y: 0, filter: "blur(0px)", duration: dur, ease: "power4.out", stagger }, at);
+      // Out: recede upward and defocus.
+      const blurOut = (sel, at, dur = 0.38) =>
+        tl.to(sel, { opacity: 0, y: -14, filter: "blur(10px)", duration: dur, ease: "power2.in" }, at);
+      const recede = (sel, at, dur = 0.45) =>
+        tl.to(sel, { opacity: 0, scale: 0.965, filter: "blur(14px)", duration: dur, ease: "power2.in" }, at);
 
-      // 3 - 7: into the converter site
-      fadeOut("#photo-meta", 3.0, 0.2);
-      tl.fromTo("#browser", { opacity: 0, scale: 0.97 }, { opacity: 1, scale: 1, duration: 0.5, ease: E }, 3.0);
-      tl.to("#photo", { x: DROP.x, y: DROP.y - 30, scale: 0.62, duration: 0.6, ease: "power2.inOut" }, 3.2);
-      tl.to("#photo", { y: DROP.y, duration: 0.25, ease: "power2.in" }, 3.82);
-      tl.fromTo("#l2", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.6, ease: E }, 3.9);
-      tl.fromTo("#cookie", { y: 260 }, { y: 0, duration: 0.6, ease: "power3.out" }, 4.7);
-      // The cookie panel covers the photo as it rises.
-      tl.to("#photo", { opacity: 0, duration: 0.3 }, 4.95);
-      fadeOut(["#browser", "#l2"], 6.55, 0.35);
+      // ---- ambient: dot field parallax + slow camera drift, whole film
+      tl.fromTo("#dots", { y: 10, scale: 1.0 }, { y: -26, scale: 1.035, duration: 25, ease: "sine.inOut" }, 0);
+      tl.fromTo("#drift", { scale: 1.0 }, { scale: 1.035, duration: 25, ease: "none" }, 0);
 
-      // 7 - 10: the turn
-      tl.fromTo("#l3", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.7, ease: E }, 7.3);
-      fadeOut("#l3", 9.6, 0.35);
+      // Photo layout (top-left of the 480x360 element)
+      const P_CENTER = { x: 720, y: 392 };
+      const P_DROP = { x: 720, y: 500 };   // centre lands on the drop zone at 0.6 scale
+      const P_LEFT = { x: 560, y: 400 };
 
-      // 10 - 14.5: right-click
-      tl.set("#photo", { x: LEFT.x, y: LEFT.y, scale: 1 }, 10.0);
-      tl.set("#photo-meta", { x: LEFT.x, y: LEFT.y + 345 }, 10.0);
-      fade(["#photo", "#photo-meta"], 10.0, 0.4);
-      tl.fromTo("#l4", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.6, ease: E }, 10.2);
-      tl.fromTo("#cursor", { x: 1500, y: 980, opacity: 0 }, { x: 790, y: 560, opacity: 1, duration: 0.9, ease: "power2.inOut" }, 10.4);
-      tl.to("#cursor", { scale: 0.85, duration: 0.08, yoyo: true, repeat: 1, transformOrigin: "0 0" }, 11.35);
-      tl.fromTo("#menu", { opacity: 0, scale: 0.97, transformOrigin: "0 0" }, { opacity: 1, scale: 1, duration: 0.15 }, 11.45);
-      tl.to("#cursor", { x: 880, y: 720, duration: 0.45, ease: "power2.inOut" }, 11.75);
-      tl.fromTo("#lp", { backgroundColor: "rgba(255,255,255,0)" }, { backgroundColor: "rgba(255,255,255,0.08)", duration: 0.05 }, 12.15);
-      tl.fromTo("#sub", { opacity: 0, x: -8 }, { opacity: 1, x: 0, duration: 0.15 }, 12.25);
-      tl.to("#cursor", { x: 1310, y: 706, duration: 0.45, ease: "power2.inOut" }, 12.45);
-      tl.fromTo("#hl", { opacity: 0 }, { opacity: 1, duration: 0.12 }, 12.85);
-      tl.to("#cursor", { scale: 0.85, duration: 0.08, yoyo: true, repeat: 1, transformOrigin: "0 0" }, 13.6);
-      fadeOut("#l4", 14.25, 0.25);
+      // ---- 0 - 3: the photo on the desktop
+      tl.set("#photo", { x: P_CENTER.x, y: P_CENTER.y }, 0);
+      tl.set("#photo-meta", { x: P_CENTER.x, y: P_CENTER.y + 384 }, 0);
+      tl.fromTo("#photo", { opacity: 0, scale: 0.94, filter: "blur(10px)" }, { opacity: 1, scale: 1, filter: "blur(0px)", duration: 1.1, ease: "expo.out" }, 0.1);
+      tl.fromTo("#photo-meta", { opacity: 0 }, { opacity: 1, duration: 0.8, ease: "power2.out" }, 0.5);
+      wordsIn("#l1", 0.55);
+      tl.to("#k1", { color: AMBER, duration: 0.45, ease: "power2.out" }, 1.35);
+      blurOut("#l1", 2.7);
 
-      // 14.5 - 18.5: three beats, one per second
-      fadeOut(["#menu", "#sub", "#cursor"], 14.5, 0.15);
-      fade("#l5", 14.55, 0.3);
-      tl.set(["#b1", "#b2", "#b3"], { color: "#5c5a56" }, 14.5);
-      tl.set("#b1", { color: "#f5a524" }, 14.6);
-      tl.fromTo("#r1", { opacity: 0, x: -30 }, { opacity: 1, x: 0, duration: 0.45, ease: E }, 14.7);
-      tl.set("#b1", { color: "#edebe6" }, 15.6);
-      tl.set("#b2", { color: "#f5a524" }, 15.6);
-      tl.fromTo("#r2", { opacity: 0, x: -30 }, { opacity: 1, x: 0, duration: 0.45, ease: E }, 15.7);
-      ["11", "8", "5", "3", "2"].forEach((v, i) => tl.set("#sz", { textContent: v }, 16.0 + i * 0.09));
-      tl.set("#b2", { color: "#edebe6" }, 16.6);
-      tl.set("#b3", { color: "#f5a524" }, 16.6);
-      tl.fromTo("#r3", { opacity: 0 }, { opacity: 1, duration: 0.3 }, 16.7);
-      tl.fromTo("#pg1", { x: 0, rotation: 0 }, { x: -60, rotation: -4, duration: 0.5, ease: E }, 17.0);
-      tl.fromTo("#pg2", { x: 0, y: 0 }, { x: 70, rotation: 3, duration: 0.5, ease: E }, 17.0);
-      tl.fromTo(["#n1", "#n2"], { opacity: 0 }, { opacity: 1, duration: 0.3 }, 17.3);
-      tl.set("#b3", { color: "#edebe6" }, 18.2);
-      fadeOut(["#photo", "#photo-meta", "#r1", "#r2", "#r3", "#l5"], 18.5, 0.35);
+      // ---- 3 - 7: the converter site wants an upload
+      tl.to("#photo-meta", { opacity: 0, duration: 0.25, ease: "power2.in" }, 2.85);
+      tl.fromTo("#browser", { opacity: 0, y: 46, scale: 0.94, filter: "blur(12px)" }, { opacity: 1, y: 0, scale: 1, filter: "blur(0px)", duration: 0.95, ease: "expo.out" }, 3.0);
+      tl.to("#photo", { x: P_DROP.x, y: P_DROP.y, scale: 0.6, rotation: -1.5, duration: 0.85, ease: "power3.inOut" }, 3.15);
+      tl.to("#photo", { rotation: 0, duration: settle.duration, ease: settle.ease }, 4.0);
+      wordsIn("#l2", 3.55);
+      tl.to("#k2", { color: AMBER, duration: 0.45, ease: "power2.out" }, 4.25);
+      tl.fromTo("#dim", { opacity: 0 }, { opacity: 1, duration: 0.5, ease: "power2.out" }, 4.7);
+      tl.fromTo("#cookie", { y: 250 }, { y: 0, duration: settle.duration, ease: settle.ease }, 4.75);
+      recede(["#browser", "#photo", "#cookie-mask"], 6.55, 0.5);
+      blurOut("#l2", 6.6);
 
-      // 18.5 - 22: three labels
-      ["#w1", "#w2", "#w3"].forEach((id, i) =>
-        tl.fromTo(id, { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.55, ease: E }, 18.95 + i * 0.45));
-      fadeOut("#labels", 21.65, 0.35);
+      // ---- 7 - 10: the turn
+      wordsIn("#l3", 7.2, 0.085, 1.0);
+      blurOut("#l3", 9.5, 0.42);
 
-      // 22 - 25: wordmark
-      tl.fromTo("#mark .page", { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.5, ease: E }, 22.1);
-      tl.fromTo("#mark .word", { opacity: 0, x: -20 }, { opacity: 1, x: 0, duration: 0.6, ease: E }, 22.25);
-      tl.fromTo("#tagline", { opacity: 0 }, { opacity: 1, duration: 0.6 }, 22.8);
+      // ---- 10 - 14.5: right-click
+      tl.set("#photo", { x: P_LEFT.x, y: P_LEFT.y, scale: 1, rotation: 0 }, 10.0);
+      tl.set("#photo-meta", { x: P_LEFT.x, y: P_LEFT.y + 384 }, 10.0);
+      tl.fromTo("#photo", { opacity: 0, filter: "blur(12px)", y: P_LEFT.y + 26 }, { opacity: 1, filter: "blur(0px)", y: P_LEFT.y, duration: 1.0, ease: "expo.out", immediateRender: false }, 10.0);
+      tl.fromTo("#photo-meta", { opacity: 0 }, { opacity: 1, duration: 0.6, immediateRender: false }, 10.35);
+      wordsIn("#l4", 10.2);
+
+      // Cursor: curved path (x and y on different eases), then contact.
+      tl.set("#menu", { opacity: 0 }, 10.0);
+      tl.set("#sub", { opacity: 0 }, 10.0);
+      tl.set(["#rip1", "#rip2"], { opacity: 0, scale: 0 }, 10.0);
+      tl.fromTo("#cursor", { opacity: 0, x: 1560, y: 1010 }, { opacity: 1, duration: 0.25, ease: "power1.out" }, 10.45);
+      tl.to("#cursor", { x: 892, duration: 1.0, ease: "power3.inOut" }, 10.45);
+      tl.to("#cursor", { y: 608, duration: 1.0, ease: "power2.inOut" }, 10.45);
+      const click = (at, x, y, target) => {
+        tl.to("#cursor", { scale: 0.86, duration: 0.07, ease: "power2.in", yoyo: true, repeat: 1, transformOrigin: "14% 8%" }, at);
+        if (target) tl.to(target, { scale: 0.992, duration: 0.07, ease: "power2.in", yoyo: true, repeat: 1 }, at);
+        tl.set(["#rip1", "#rip2"], { x, y }, at);
+        tl.fromTo("#rip1", { opacity: 0.7, scale: 0.2 }, { opacity: 0, scale: 2.2, duration: 0.6, ease: "power2.out", immediateRender: false }, at + 0.02);
+        tl.fromTo("#rip2", { opacity: 0.45, scale: 0.2 }, { opacity: 0, scale: 3.0, duration: 0.75, ease: "power2.out", immediateRender: false }, at + 0.1);
+      };
+      click(11.5, 900, 612, "#photo");
+
+      // Camera pushes toward the menu while it opens.
+      tl.to("#cam", { scale: 1.15, x: -220, y: -150, duration: 1.5, ease: "power2.inOut" }, 11.3);
+
+      // Menu wipes open from the cursor.
+      tl.fromTo("#menu", { opacity: 0, y: -6, clipPath: "inset(0% 0% 100% 0% round 11px)" },
+        { opacity: 1, y: 0, clipPath: "inset(0% 0% 0% 0% round 11px)", duration: 0.32, ease: "expo.out" }, 11.58);
+      // One hover pill glides down the rows with the cursor.
+      tl.fromTo("#pill", { opacity: 0, y: 0 }, { opacity: 1, duration: 0.12, ease: "power1.out" }, 12.0);
+      tl.to("#cursor", { x: 1000, y: 773, duration: 0.5, ease: "power2.inOut" }, 11.95);
+      tl.to("#pill", { y: 125, duration: 0.45, ease: "power2.inOut" }, 12.0);
+      tl.fromTo("#sub", { opacity: 0, x: -8, clipPath: "inset(0% 100% 0% 0% round 11px)" },
+        { opacity: 1, x: 0, clipPath: "inset(0% 0% 0% 0% round 11px)", duration: 0.34, ease: "expo.out" }, 12.5);
+      tl.to("#cursor", { x: 1440, y: 771, duration: 0.5, ease: "power3.inOut" }, 12.62);
+      tl.fromTo("#amberbar", { opacity: 0, scaleX: 0.96 }, { opacity: 1, scaleX: 1, duration: 0.24, ease: "power2.out" }, 13.08);
+      click(13.55, 1447, 776, "#amberbar");
+      tl.to(["#menu", "#sub"], { opacity: 0, scale: 0.985, duration: 0.2, ease: "power2.in" }, 13.92);
+      tl.to("#cursor", { opacity: 0, duration: 0.25, ease: "power1.in" }, 14.05);
+      tl.to("#cam", { scale: 1, x: 0, y: 0, duration: 1.1, ease: "power3.inOut" }, 13.95);
+      blurOut("#l4", 14.15, 0.3);
+
+      // ---- 14.5 - 18.5: three results, one per second
+      tl.set(["#r1", "#r2", "#r3"], { opacity: 0 }, 14.5);
+      tl.fromTo("#l5 .w", { opacity: 0, y: 18, filter: "blur(10px)", color: DIM }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.7, ease: "power4.out", stagger: 0.07 }, 14.5);
+      const beat = (id, at) => { tl.to(id, { color: AMBER, duration: 0.25, ease: "power2.out" }, at); tl.to(id, { color: TEXT, duration: 0.3, ease: "power2.inOut" }, at + 0.9); };
+      beat("#b1", 14.62); beat("#b2", 15.62); beat("#b3", 16.62);
+      tl.fromTo("#r1", { opacity: 0, x: -36, scale: 0.9, filter: "blur(8px)" }, { opacity: 1, x: 0, scale: 1, filter: "blur(0px)", duration: settle.duration, ease: settle.ease }, 14.68);
+      tl.fromTo("#r2", { opacity: 0, x: -36, scale: 0.9, filter: "blur(8px)" }, { opacity: 1, x: 0, scale: 1, filter: "blur(0px)", duration: settle.duration, ease: settle.ease }, 15.68);
+      const size = { v: 14 };
+      tl.to(size, { v: 2, duration: 0.75, ease: "power3.out", onUpdate: () => { document.getElementById("sz").textContent = Math.round(size.v) + " MB"; } }, 15.95);
+      tl.fromTo("#r3", { opacity: 0, scale: 0.9, filter: "blur(8px)" }, { opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.5, ease: "power3.out" }, 16.68);
+      tl.fromTo("#pg1", { x: 0, rotation: 0 }, { x: -64, rotation: -5, duration: settle.duration, ease: settle.ease }, 16.95);
+      tl.fromTo("#pg2", { x: 0, rotation: 0 }, { x: 64, rotation: 4, duration: settle.duration, ease: settle.ease }, 16.95);
+      tl.fromTo(["#n1", "#n2"], { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.45 }, 17.2);
+      recede(["#photo", "#photo-meta", "#r1", "#r2", "#r3"], 18.25, 0.45);
+      blurOut("#l5", 18.25, 0.4);
+
+      // ---- 18.5 - 22: three words
+      tl.fromTo("#labels .w", { opacity: 0, y: 30, filter: "blur(14px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 1.0, ease: "power4.out", stagger: 0.45 }, 18.8);
+      blurOut("#labels", 21.6, 0.4);
+
+      // ---- 22 - 25: wordmark
+      tl.fromTo("#bloom", { opacity: 0, scale: 0.85 }, { opacity: 1, scale: 1, duration: 1.6, ease: "sine.out" }, 22.0);
+      tl.fromTo("#mark .pg", { opacity: 0, y: 14, clipPath: "inset(100% 0% 0% 0%)" }, { opacity: 1, y: 0, clipPath: "inset(0% 0% 0% 0%)", duration: soft.duration, ease: soft.ease }, 22.15);
+      wordsIn("#mark", 22.3, 0, 1.0);
+      wordsIn("#tagline", 22.85, 0, 1.0);
 
       window.__timelines = window.__timelines || {};
       window.__timelines["main"] = tl;
       tl.seek(0);
     </script>
+<!--
+  Motion Blur — After Effects-style shutter-based motion blur.
+
+  Usage: paste this snippet into your composition, then put
+  data-hf-motion-blur on any element your GSAP timeline animates.
+  Nothing else to call, and no order to get wrong.
+
+  How it works — the same model After Effects uses for the layer Motion Blur
+  switch (temporal supersampling), synthesised inside the page because the
+  renderer captures one instant per frame with no shutter:
+
+    1. After every timeline update (each rendered frame), the snippet seeks
+       the timeline to `samplesPerFrame` sub-frame times spread evenly across
+       the shutter window, reads each target's RESOLVED `transform` at every
+       sample, then restores the frame time. Seeks run with events suppressed,
+       so no user callbacks fire and the DOM ends up exactly where the frame
+       left it. Reading the resolved matrix rather than a list of named GSAP
+       properties is what makes every driver work: translation, scale,
+       rotation, 3D rotation and skew arrive in the same one value, and a
+       driver nobody thought of needs no change here.
+    2. One copy of the element per sample is stacked in an isolated group,
+       each carrying its sample's transform, each at 1/N opacity with
+       `mix-blend-mode: plus-lighter`. plus-lighter adds premultiplied colour,
+       so N+1 copies at 1/N sum to the average — the shutter integral. The
+       isolation is load-bearing: without a transparent backdrop of its own
+       the first copy would add onto the page and blow a light background out
+       to white. Result: a smear along the actual trajectory whose extent is
+       speed × shutter time, with no decaying one-sided trail. The tails —
+       where fewer copies overlap — step down evenly at 1/N per copy; wherever
+       the element travels less than its own size the copies pile up past 1
+       and clamp, so the middle of the smear is solid rather than a plateau.
+    3. The element itself paints over that group, sharp and at full opacity.
+       No single copy ever exceeds 1/N, so a moving edge resolves as a
+       staircase of ghosts behind a solid frame-time instance. The group
+       carries the element's own opacity, so a beat that moves and fades at
+       once fades its smear with it. With `sharp: 0` the element is hidden
+       while it moves instead, leaving only the shutter average.
+    4. When every sampled transform collapses to the current one (element at
+       rest), the group is hidden so the element renders sharp.
+
+  Shutter window (AE semantics, per frame at time t, frame interval 1/fps):
+    shutterTime = shutterAngle / 360 / fps
+    windowStart = t + shutterPhase / 360 / fps
+    copy k      = windowStart + k / N × shutterTime,   k = 0..N  (N+1 copies)
+  N counts sub-intervals, so both ends of the window carry a copy.
+  Defaults (shutterAngle 720, shutterPhase -360) integrate [t - 1/fps, t + 1/fps]:
+  a solid moving at 2000 px/s at 30 fps smears 133 px, centred on its position.
+
+  These defaults are measured, not assumed. On a 1920×1080 / 30 fps After Effects
+  export of translating text, the outermost duplicate on the trailing side sits
+  exactly at the previous frame's position and the outermost leading duplicate
+  exactly at the next frame's, with 8 evenly spaced duplicates in between on each
+  side (window = 2 frames = 720°, phase -360°, 16 sub-intervals). Reading the ghost
+  staircase across a stroke gives steps of 0.063 ± 0.002 of the sharp text
+  intensity — a flat 1/16 per duplicate, with no taper toward the window edges
+  (triangle weighting scores 1.6 dB worse against the same export). The sharp
+  instance on top is what keeps total ink above the unblurred frame's.
+
+  Requirements:
+  - Elements must be animated via `transform` (GSAP x/y/scale/rotation and the
+    3D and skew properties all qualify), not left/top. Transformed ancestors
+    are still not compensated.
+  - A 3D beat reads its perspective off the element's parent and applies it per
+    copy, so the vanishing point follows each copy's transform-origin rather
+    than the parent's perspective-origin. Those agree when the element is
+    centred in its perspective parent, which is how a 3D beat is authored.
+  - A copy drops the element's id but keeps its classes, because a class rule is
+    the only thing that can still style a copy's pseudo-elements. So a selector
+    written against a class matches the copies too: after attaching, address the
+    element by id or by reference, never by a class a copy also carries.
+  - A target is blurred once: a second attachMotionBlur() call naming the same
+    element leaves the first call's copies in place rather than stacking a
+    second set over them.
+  - Cost is N + 1 copies of the target's whole subtree, restyled on attach and
+    on resize and re-transformed every frame. Point it at the element that
+    moves, not at a container holding it.
+  - The host must render the timeline for the blur to update — HyperFrames
+    seeks every frame. A fresh paused timeline that is never seeked shows no
+    blur on its first frame.
+  - A declarative target is attached as soon as its composition's timeline is
+    registered, and the registry is also polled for about eight seconds after
+    load, so a composition that mounts asynchronously is picked up too. A
+    target added to the document after that window needs attachMotionBlur().
+  - GSAP must be loaded before this snippet executes.
+
+  API:
+    data-hf-motion-blur on the element that moves. Empty for defaults, else a
+      JSON OBJECT of the options below (double quotes on the keys). The
+      element's timeline is the one registered under the data-composition-id of
+      its nearest ancestor carrying that attribute, so a sub-composition's
+      targets follow that sub-composition.
+      Three things warn rather than rendering sharp in silence: a target no
+      composition ever registers a timeline for, a value that is not JSON, and
+      a value that parses but is not an object (null, a number, a string).
+      A second timeline registered under the same key also warns: the copies
+      keep following the first one.
+    attachMotionBlur(selector, timeline, options?) — the imperative form, for a
+      target built after the polling window. Call it AFTER defining all tweens,
+      so the timeline's final duration is known.
+      Either form blurs a given element once, whichever names it first.
+
+  Options:
+    shutterAngle     — degrees of the frame interval the shutter is open
+                       (default 720 = two frames, as measured off the AE
+                       reference; 360 = one frame, 0 disables)
+    shutterPhase     — degrees offset of the window start from the frame
+                       time (default -360 = centred on the frame, one frame
+                       back, like the AE reference)
+    samplesPerFrame  — sub-intervals of the shutter window, so N+1 duplicates
+                       each at 1/N opacity (default 16, max 64)
+    fps              — composition frame rate (default: the data-fps of the
+                       target's own composition root, else 30). Pass it
+                       explicitly when rendering with an fps override
+                       (`hyperframes render --fps`).
+    sharp            — 1 (default) paints the element itself, crisp, over its
+                       smear; 0 hides it while it moves, leaving only the
+                       shutter average: a soft blur with no frame-time edge.
+                       It hides through a marker attribute, never the
+                       element's own visibility, so autoAlpha still works
+                       (an inline visibility !important on it wins).
+
+  A key that is none of the five, or a value that is not a finite number, is
+  refused by name rather than read as defaults. Both halves matter: a
+  non-numeric angle hides the smear, and a non-numeric phase seeks every copy
+  to NaN, which parks them at the timeline's start.
+-->
+
+<script>
+  (function () {
+    /* SHUTTER_SNIPPET_START */
+    if (!window._hfMbUid) window._hfMbUid = 0;
+    if (!window._hfMbAttached) window._hfMbAttached = new WeakSet();
+    if (!window._hfMbSkipped) window._hfMbSkipped = new WeakSet();
+    if (!window._hfMbProxies) window._hfMbProxies = new WeakSet();
+    if (!window._hfMbTimeline) window._hfMbTimeline = new WeakMap();
+    if (!window._hfMbWarned) window._hfMbWarned = new WeakSet();
+
+    // The declarative form. A copy of a target must not carry it, or the copy is swept
+    // as a target of its own; the group's own marker is `data-hf-motion-blur-group`.
+    var SWEEP_ATTR = "data-hf-motion-blur";
+    // About eight seconds. Long enough for an asynchronously mounted sub-composition, short
+    // enough that a page with a genuine mistake in it reports before anyone stops watching.
+    var POLL_MS = 32;
+    var POLL_TICKS = 250;
+    var SWEEP_SELECTOR = "[" + SWEEP_ATTR + "]";
+    var OPTION_KEYS = ["shutterAngle", "shutterPhase", "samplesPerFrame", "fps", "sharp"];
+
+    // A copy is a deep clone, so the attribute rides along on the root AND on every marked
+    // descendant. Any one left behind is swept as a target of its own, which clones again.
+    var COPY_STRIP = [SWEEP_ATTR, "data-composition-id", "data-fps"];
+
+    // sharp 0 hides a moving target through this marker rather than its own visibility,
+    // which the author's timeline (autoAlpha) may be writing too.
+    var HIDE_ATTR = "data-hf-motion-blur-hiding";
+
+    function installHideRule() {
+      if (document.getElementById("hf-mb-hide")) return;
+      var rule = document.createElement("style");
+      rule.id = "hf-mb-hide";
+      rule.textContent = "[" + HIDE_ATTR + "]{visibility:hidden!important}";
+      (document.head || document.documentElement).appendChild(rule);
+    }
+
+    function stripAttrs(el) {
+      for (var a = 0; a < COPY_STRIP.length; a++) el.removeAttribute(COPY_STRIP[a]);
+    }
+
+    function stripCopyAttrs(root) {
+      stripAttrs(root);
+      var inner = root.querySelectorAll("[" + COPY_STRIP.join("],[") + "]");
+      for (var i = 0; i < inner.length; i++) stripAttrs(inner[i]);
+    }
+
+    // Shutter length is measured in frames, so the snippet must know the composition
+    // frame rate: explicit option, else the target's OWN root, else the first root in
+    // the document, else 30. The target's root is what makes two compositions on one
+    // page read their own data-fps instead of sharing the first one written.
+    function resolveFps(optionFps, target) {
+      var explicit = Number(optionFps);
+      if (explicit > 0) return explicit;
+
+      var scoped = target ? target.closest("[data-composition-id][data-fps]") : null;
+      var root = scoped || document.querySelector("[data-composition-id][data-fps]");
+      var rootFps = root ? Number(root.getAttribute("data-fps")) : 0;
+      if (rootFps > 0) return rootFps;
+
+      return 30;
+    }
+
+    function numOption(value, fallback) {
+      return value !== undefined ? Number(value) : fallback;
+    }
+
+    // A resolved `transform` is either "none", a 2D matrix(a,b,c,d,e,f) or a 3D
+    // matrix3d of 16. Splitting the numbers into the linear part and the
+    // translation is what lets the deadband below use a pixel tolerance on the
+    // one and an angle/ratio tolerance on the other.
+    function parseTransform(value) {
+      if (!value || value === "none") return { linear: [1, 0, 0, 1], translate: [0, 0, 0] };
+      var nums = value
+        .slice(value.indexOf("(") + 1, -1)
+        .split(",")
+        .map(parseFloat);
+      if (nums.length === 16) {
+        return {
+          linear: [
+            nums[0],
+            nums[1],
+            nums[2],
+            nums[4],
+            nums[5],
+            nums[6],
+            nums[8],
+            nums[9],
+            nums[10],
+            nums[3],
+            nums[7],
+            nums[11],
+            nums[15],
+          ],
+          translate: [nums[12], nums[13], nums[14]],
+        };
+      }
+      return {
+        linear: [nums[0], nums[1], nums[2], nums[3]],
+        translate: [nums[4], nums[5], 0],
+      };
+    }
+
+    // Deadband: half a pixel of travel, a thousandth of a unit of linear change,
+    // about 0.06 degrees or 0.1% of scale. Below it the average is the source.
+    // The 2D and 3D forms have different arities, so a change of form counts as
+    // movement rather than being compared component by component.
+    function differs(a, b) {
+      if (a.linear.length !== b.linear.length) return true;
+      for (var i = 0; i < a.linear.length; i++) {
+        if (Math.abs(a.linear[i] - b.linear[i]) > 0.001) return true;
+      }
+      for (var j = 0; j < 3; j++) {
+        if (Math.abs(a.translate[j] - b.translate[j]) > 0.5) return true;
+      }
+      return false;
+    }
+
+    window.attachMotionBlur = function (selector, tl, opts) {
+      opts = opts || {};
+      var shutterAngle = numOption(opts.shutterAngle, 720);
+      var shutterPhase = numOption(opts.shutterPhase, -360);
+      var requestedSamples = numOption(opts.samplesPerFrame, 16);
+      var sharp = opts.sharp !== 0;
+      if (!sharp) installHideRule();
+      var samples = Number.isFinite(requestedSamples)
+        ? Math.max(2, Math.min(64, Math.round(requestedSamples)))
+        : 16;
+      var items = Array.isArray(selector) ? selector : [selector];
+      var targets = items.reduce(function (acc, s) {
+        if (typeof s === "string") {
+          document.querySelectorAll(s).forEach(function (el) {
+            acc.push(el);
+          });
+        } else if (s instanceof Element) {
+          acc.push(s);
+        }
+        return acc;
+      }, []);
+
+      // `samples` counts sub-intervals of the shutter window, so there is one copy at
+      // every interval boundary — both ends of the window included — and each carries
+      // 1/samples of the source. That is what the reference export shows: the outermost
+      // copy sits exactly one frame away from the frame time, not half a step short.
+      var copies = samples + 1;
+      var alpha = String(1 / samples);
+
+      // A copy is styled by nothing that selected the original: dropping the id also
+      // drops every `#id` rule that gave it size, colour and font. So each copy carries
+      // its own resolved style inline. Chrome returns "" for a computed style's cssText,
+      // so the declarations are enumerated rather than taken wholesale.
+      // Visibility is not frozen into a copy: its root takes the element's current one from
+      // the group each frame, and a descendant keeps its own only where it differs from its
+      // parent's. A target hidden at attach (autoAlpha) would otherwise never smear.
+      function resolvedStyles(source, out, parentVisibility) {
+        var cs = getComputedStyle(source);
+        var text = "";
+        for (var i = 0; i < cs.length; i++) {
+          var value = cs.getPropertyValue(cs[i]);
+          var inherited = parentVisibility === undefined || value === parentVisibility;
+          if (cs[i] === "visibility" && inherited) continue;
+          text += cs[i] + ":" + value + ";";
+        }
+        // A copy is a still of one instant. Left live, an inherited transition or
+        // keyframe animation would carry it somewhere the timeline never sampled.
+        out.push(text + "transition:none;animation:none;");
+        for (var c = 0; c < source.children.length; c++) {
+          resolvedStyles(source.children[c], out, cs.getPropertyValue("visibility"));
+        }
+        return out;
+      }
+
+      function paintResolvedStyles(copy, styles, cursor) {
+        copy.style.cssText = styles[cursor.i++];
+        for (var c = 0; c < copy.children.length; c++) {
+          paintResolvedStyles(copy.children[c], styles, cursor);
+        }
+      }
+
+      // Perspective applies to a parent's children only, and a copy is a grandchild.
+      // Sharing the parent's 3D context would need preserve-3d on the group, which
+      // mix-blend-mode flattens, so each copy carries the perspective itself. See the
+      // header for what that does to the vanishing point.
+      function parentPerspective(el) {
+        var value = el.parentNode ? getComputedStyle(el.parentNode).perspective : "none";
+        return value && value !== "none" ? "perspective(" + value + ") " : "";
+      }
+
+      function attachOne(el) {
+        var group = document.createElement("div");
+        group.setAttribute("data-hf-motion-blur-group", "hf-mb-" + window._hfMbUid++);
+        group.style.cssText =
+          "position:absolute;left:0;top:0;width:0;height:0;isolation:isolate;pointer-events:none;display:none;";
+
+        var clones = [];
+        for (var k = 0; k < copies; k++) {
+          var clone = el.cloneNode(true);
+          clone.removeAttribute("id");
+          stripCopyAttrs(clone);
+          clones.push(clone);
+          group.appendChild(clone);
+        }
+        var s = {
+          el: el,
+          group: group,
+          clones: clones,
+          samples: [],
+          perspective: "",
+          watch: null,
+        };
+
+        // Resolved styles and the parent's perspective are px once read, so a
+        // container-relative element needs them again when its box changes. Per frame
+        // that would walk the whole subtree once per copy; on resize it costs nothing
+        // on a fixed-size render and keeps a live preview honest.
+        function snapshot() {
+          // Read a target hidden right now (an autoAlpha entrance) as shown, so a descendant
+          // hidden by its own rule still differs from it; the inline value goes back exactly.
+          var hidden = getComputedStyle(el).visibility !== "visible";
+          var inline = el.style.getPropertyValue("visibility");
+          var priority = el.style.getPropertyPriority("visibility");
+          if (hidden) el.style.setProperty("visibility", "visible", "important");
+          var styles;
+          try {
+            styles = resolvedStyles(el, []);
+          } finally {
+            if (hidden) el.style.setProperty("visibility", inline, priority);
+          }
+          s.perspective = parentPerspective(el);
+          for (var c = 0; c < clones.length; c++) {
+            paintResolvedStyles(clones[c], styles, { i: 0 });
+            clones[c].style.position = "absolute";
+            clones[c].style.margin = "0";
+            clones[c].style.opacity = alpha;
+            clones[c].style.mixBlendMode = "plus-lighter";
+          }
+        }
+
+        // Snapshot BEFORE the group enters the page, so a throw in the style walk leaves
+        // nothing behind: the record the rollback needs does not exist until it returns.
+        snapshot();
+        el.parentNode.insertBefore(group, el);
+        if (typeof ResizeObserver === "function") {
+          s.watch = new ResizeObserver(snapshot);
+          s.watch.observe(el);
+        }
+        return s;
+      }
+
+      var state = [];
+      // Every element this call marked. A throw inside `attachOne` never returns its
+      // record, so `state` alone cannot give the marks back.
+      var claimed = [];
+      try {
+        for (var q = 0; q < targets.length; q++) {
+          var candidate = targets[q];
+          // One group per element, whether a second call names it or one call names it
+          // twice: a second set of copies over the first would double the ink. Marked
+          // BEFORE the copies go in: inserting them runs custom-element reactions
+          // synchronously, and one that registers a timeline re-enters the write trap.
+          if (window._hfMbAttached.has(candidate)) continue;
+          window._hfMbAttached.add(candidate);
+          window._hfMbTimeline.set(candidate, tl);
+          claimed.push(candidate);
+          state.push(attachOne(candidate));
+        }
+      } catch (e) {
+        unmark(claimed);
+        discard(state);
+        throw e;
+      }
+      // Nothing to blur means nothing to seek: a tracker here would run the whole sample
+      // loop every frame over an empty set.
+      if (state.length === 0) return;
+
+      // One seek loop drives the whole call, so the window is ONE length, and it belongs
+      // to the composition of an element this call actually attached.
+      var fps = resolveFps(opts.fps, state[0].el);
+      for (var d = 1; d < state.length; d++) {
+        if (resolveFps(opts.fps, state[d].el) === fps) continue;
+        var line = "one call cannot blur compositions at different frame rates; using ";
+        console.warn("[motion-blur] " + line + fps, state[d].el);
+        break;
+      }
+
+      function readTransform(el) {
+        var cs = getComputedStyle(el);
+        return {
+          css: cs.transform,
+          origin: cs.transformOrigin,
+          opacity: cs.opacity,
+          visibility: cs.visibility,
+          parsed: parseTransform(cs.transform),
+        };
+      }
+
+      var scheduled = false;
+
+      function applyShutter() {
+        var shutterTime = shutterAngle / 360 / fps;
+        if (!(shutterTime > 0)) {
+          state.forEach(function (s) {
+            s.group.style.display = "none";
+          });
+          return;
+        }
+
+        var t0 = tl.time();
+        var duration = tl.duration();
+        var windowStart = t0 + shutterPhase / 360 / fps;
+
+        // Sample the real trajectory: seek to each sub-frame time with events
+        // suppressed (so no tween callbacks, including this tracker's, fire),
+        // read the resolved transform, then restore the frame time.
+        try {
+          for (var k = 0; k < copies; k++) {
+            var tk = windowStart + (k / samples) * shutterTime;
+            tl.time(Math.min(duration, Math.max(0, tk)), true);
+            state.forEach(function (s) {
+              s.samples[k] = readTransform(s.el);
+            });
+          }
+        } finally {
+          tl.time(t0, true);
+        }
+
+        state.forEach(function (s) {
+          // Read the element as the timeline left it: the marker is this snippet's own.
+          if (!sharp) s.el.removeAttribute(HIDE_ATTR);
+          var current = readTransform(s.el);
+          var moved = false;
+          for (var i = 0; i < copies; i++) {
+            if (differs(s.samples[i].parsed, current.parsed)) {
+              moved = true;
+              break;
+            }
+          }
+          if (!moved) {
+            s.group.style.display = "none";
+            return;
+          }
+
+          // The copies are absolutely positioned inside the group, and the group sits at
+          // the origin of the element's own containing block, so the element's offset box
+          // places them. Re-read every frame: a beat is free to move the box itself.
+          var left = s.el.offsetLeft + "px";
+          var top = s.el.offsetTop + "px";
+          var width = s.el.offsetWidth + "px";
+          var height = s.el.offsetHeight + "px";
+          for (var j = 0; j < copies; j++) {
+            var clone = s.clones[j];
+            clone.style.left = left;
+            clone.style.top = top;
+            clone.style.width = width;
+            clone.style.height = height;
+            clone.style.transformOrigin = s.samples[j].origin;
+            clone.style.transform =
+              s.perspective + (s.samples[j].css === "none" ? "" : s.samples[j].css);
+          }
+          // The copies are the element's own ink, so they carry its opacity and visibility:
+          // a beat that moves and fades at once would otherwise leave a full-strength
+          // smear behind a vanishing element. It rides the group, not the copies, whose
+          // own opacity is the 1/N shutter weight.
+          s.group.style.opacity = current.opacity;
+          // Set only where the element differs from its parent: an explicit value would
+          // outlive an ancestor that hides later, like a clip that has ended.
+          var shared = getComputedStyle(s.el.parentNode).visibility;
+          s.group.style.visibility = current.visibility === shared ? "" : current.visibility;
+          s.group.style.display = "";
+          if (!sharp) s.el.setAttribute(HIDE_ATTR, "");
+        });
+      }
+
+      // tl.eventCallback("onUpdate") is unavailable under the HyperFrames runtime proxy, so a
+      // tracker tween's onUpdate fires on every seek. Sampling is deferred to a microtask:
+      // seeking GSAP from inside its own render reads stale tween state, while the microtask
+      // runs after the seek returns and before the frame is captured or painted.
+      var _proxy = { t: 0 };
+      try {
+        tl.to(
+          _proxy,
+          {
+            t: 1,
+            duration: Math.max(tl.duration(), 0.1),
+            ease: "none",
+            onUpdate: function () {
+              if (scheduled) return;
+              scheduled = true;
+              Promise.resolve().then(function () {
+                scheduled = false;
+                applyShutter();
+              });
+            },
+          },
+          0,
+        );
+      } catch (e) {
+        unmark(claimed);
+        discard(state);
+        throw e;
+      }
+    };
+
+    // An empty attribute means defaults; anything else is a JSON options object. A value that
+    // is not an options object is skipped loudly rather than read as defaults, because a typo
+    // in it would otherwise render as a silently unblurred element.
+    function sweepOptions(el) {
+      var text = (el.getAttribute(SWEEP_ATTR) || "").trim();
+      if (text === "") return {};
+      var parsed = null;
+      try {
+        parsed = JSON.parse(text);
+      } catch (e) {
+        return refuse(el, "is not JSON: " + text);
+      }
+      // `null`, a number and a string all parse. None of them is a set of options.
+      if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+        return refuse(el, "is not a JSON object: " + text);
+      }
+      var bad = unknownKey(parsed);
+      if (bad !== null) return refuse(el, "names no such option: " + bad);
+      var wrong = nonNumber(parsed);
+      if (wrong !== null) return refuse(el, "needs a number for " + wrong);
+      if (parsed.sharp !== undefined && parsed.sharp !== 0 && parsed.sharp !== 1) {
+        return refuse(el, "needs 0 or 1 for sharp");
+      }
+      return parsed;
+    }
+
+    // A misspelled key is the likeliest typo in a JSON object, and reading it as
+    // defaults is the silent no-op this attribute exists to remove.
+    function unknownKey(parsed) {
+      for (var key in parsed) {
+        if (OPTION_KEYS.indexOf(key) < 0) return key;
+      }
+      return null;
+    }
+
+    // A key with a value the shutter cannot use is the same silent no-op as a key it does
+    // not know: a non-numeric angle hides the smear, a non-numeric phase parks every copy
+    // at the timeline's start. JSON gives real numbers, so anything else is a typo.
+    function nonNumber(parsed) {
+      for (var i = 0; i < OPTION_KEYS.length; i++) {
+        var held = parsed[OPTION_KEYS[i]];
+        if (held === undefined) continue;
+        if (typeof held !== "number" || !Number.isFinite(held)) return OPTION_KEYS[i];
+      }
+      return null;
+    }
+
+    // A throw partway through an attach leaves an element blurred by nothing, so the copies
+    // go too, along with the observer that would otherwise keep walking a detached subtree
+    // on every resize of an element nothing blurs.
+    // The mark is what a second trigger reads, so it is the first thing to give back.
+    function unmark(els) {
+      for (var i = 0; i < els.length; i++) {
+        window._hfMbAttached.delete(els[i]);
+        window._hfMbTimeline.delete(els[i]);
+      }
+    }
+
+    function discard(state) {
+      for (var i = 0; i < state.length; i++) {
+        var s = state[i];
+        if (s.watch !== null) s.watch.disconnect();
+        if (s.group.parentNode !== null) s.group.parentNode.removeChild(s.group);
+      }
+    }
+
+    function refuse(el, why) {
+      window._hfMbSkipped.add(el);
+      console.warn("[motion-blur] " + SWEEP_ATTR + " " + why, el);
+      return null;
+    }
+
+    // An element belongs to the nearest composition above it, so a sub-composition's
+    // targets follow that sub-composition's own timeline.
+    function compositionOf(el) {
+      var host = el.closest("[data-composition-id]");
+      return host ? host.getAttribute("data-composition-id") : null;
+    }
+
+    // Anything else registered on the container is somebody else's bookkeeping: a
+    // timeline is the thing this snippet can seek and extend.
+    function isTimeline(value) {
+      return !!value && typeof value.time === "function" && typeof value.to === "function";
+    }
+
+    // Attached, or skipped as unparseable. Both are terminal, so a later trigger must not
+    // report or attach the element twice.
+    function handled(el) {
+      return window._hfMbAttached.has(el) || window._hfMbSkipped.has(el);
+    }
+
+    // The timeline registered for an element's own composition, or null. Read from the
+    // registry rather than taken from whoever wrote it, so every trigger agrees.
+    function timelineFor(el) {
+      var id = compositionOf(el);
+      if (id === null) return null;
+      var registry = window.__timelines;
+      var found = registry ? registry[id] : null;
+      return isTimeline(found) ? found : null;
+    }
+
+    // A marked element whose parent is not an Element has no target above it: the parent
+    // of a root is the Document, which has no `closest`.
+    function nestedInTarget(el) {
+      var parent = el.parentNode;
+      if (parent === null || typeof parent.closest !== "function") return false;
+      return parent.closest(SWEEP_SELECTOR) !== null;
+    }
+
+    // One owner of attaching one element. Answers whether the element still needs a trigger.
+    function claim(el) {
+      var tl = timelineFor(el);
+      if (handled(el)) {
+        var owner = window._hfMbTimeline.get(el);
+        // Re-registering a key with a DIFFERENT timeline leaves the copies driven by the one
+        // nobody seeks, which renders sharp and says nothing. Report it rather than guess.
+        var changed = tl !== null && owner !== undefined && owner !== tl;
+        if (changed && !window._hfMbWarned.has(el)) {
+          window._hfMbWarned.add(el);
+          console.warn(
+            "[motion-blur] a second timeline registered for this element; the copies still follow the first",
+            el,
+          );
+        }
+        return true;
+      }
+      // Its group would be inserted into the live outer element, so the outer target's
+      // style replay would walk a subtree its cursor no longer matches.
+      if (nestedInTarget(el)) {
+        refuse(el, "cannot blur a target inside another target; blur one of them");
+        return true;
+      }
+      var opts = sweepOptions(el);
+      if (opts === null) return true;
+      if (tl === null) return false;
+      window.attachMotionBlur(el, tl, opts);
+      return true;
+    }
+
+    // Returns the elements still waiting for their composition to register a timeline.
+    // The trap below runs this INSIDE the author's registration statement, so one bad
+    // target must not abort the rest of their composition script.
+    function sweep() {
+      var pending = [];
+      document.querySelectorAll(SWEEP_SELECTOR).forEach(function (el) {
+        try {
+          if (!claim(el)) pending.push(el);
+        } catch (e) {
+          window._hfMbSkipped.add(el);
+          console.warn("[motion-blur] could not blur this element: " + e, el);
+        }
+      });
+      return pending;
+    }
+
+    // Registering a timeline is the moment the author has finished building it, so trapping
+    // the write attaches before the renderer captures a frame. A microtask would be too
+    // early: it runs before the next `<script>` tag.
+    function registrationProxy(container) {
+      var proxy = new Proxy(container, {
+        set: function (target, key, value) {
+          target[key] = value;
+          if (typeof key === "string") sweep();
+          return true;
+        },
+      });
+      window._hfMbProxies.add(proxy);
+      return proxy;
+    }
+
+    function hookRegistration() {
+      var held = window.__timelines;
+      Object.defineProperty(window, "__timelines", {
+        configurable: true,
+        enumerable: true,
+        get: function () {
+          return held;
+        },
+        set: function (value) {
+          var container = !!value && typeof value === "object";
+          var fresh = container && !window._hfMbProxies.has(value);
+          held = fresh ? registrationProxy(value) : value;
+          if (fresh) sweep();
+        },
+      });
+      // A container assigned before this snippet ran is replayed through the setter, so a
+      // timeline already registered on it is swept too.
+      if (held !== undefined) window.__timelines = held;
+    }
+
+    // The trap above cannot see every registration: the runtime owns the registry object,
+    // wraps it per sub-composition, and mounts nested compositions asynchronously. So the
+    // registry is also POLLED, which needs no cooperation from whoever writes it.
+    function poll(ticks) {
+      var pending = sweep();
+      // The WHOLE budget, every time. Stopping the first tick nothing is pending kills the
+      // poll one tick into an ordinary page, which is before a late composition arrives.
+      if (ticks > 0) {
+        setTimeout(function () {
+          poll(ticks - 1);
+        }, POLL_MS);
+        return;
+      }
+      if (pending.length === 0) return;
+      var count = pending.length + " element(s) carry " + SWEEP_ATTR;
+      console.warn(
+        "[motion-blur] " + count + ", and no composition registered a timeline for them",
+        pending,
+      );
+    }
+
+    if (!window._hfMbHooked) {
+      window._hfMbHooked = true;
+      hookRegistration();
+      poll(POLL_TICKS);
+    }
+    /* SHUTTER_SNIPPET_END */
+  })();
+</script>
+
+<!--
+  Timeline integration example:
+
+  <div id="root" data-composition-id="my-composition" data-duration="6" data-fps="30">
+    <div id="my-box" data-hf-motion-blur></div>
+    <div id="my-title" data-hf-motion-blur='{"shutterAngle": 360}'></div>
+  </div>
+
+  const tl = gsap.timeline({ paused: true });
+
+  tl.fromTo("#my-box", { x: -100 }, { x: 1700, duration: 1.2, ease: "power3.inOut" }, 0.5);
+
+  // Extend to data-duration so seeks past the last tween reach the blur callback.
+  tl.set(document.body, {}, DATA_DURATION);
+
+  // The registration below is what attaches both targets, in that order.
+  window.__timelines = window.__timelines || {};
+  window.__timelines["my-composition"] = tl;
+
+  // Only for an element created later than the polling window above:
+  attachMotionBlur("#late-box", tl, { shutterAngle: 720, samplesPerFrame: 16 });
+-->
+
   </body>
 </html>
