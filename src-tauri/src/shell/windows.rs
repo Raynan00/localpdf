@@ -24,7 +24,20 @@ fn command(exe: &Path, action: &str) -> String {
     format!("\"{}\" {action} \"%1\"", exe.display())
 }
 
+/// True when running from an MSIX package (the Microsoft Store build). Its
+/// manifest declares the Explorer menu, and registry writes from a package
+/// are private to it, so the classic registration below is skipped.
+pub fn packaged() -> bool {
+    use windows_sys::Win32::Storage::Packaging::Appx::GetCurrentPackageFullName;
+    let mut len = 0u32;
+    // APPMODEL_ERROR_NO_PACKAGE (15700) when unpackaged; ERROR_INSUFFICIENT_BUFFER when packaged.
+    unsafe { GetCurrentPackageFullName(&mut len, std::ptr::null_mut()) != 15700 }
+}
+
 pub fn register(exe: &Path) -> io::Result<()> {
+    if packaged() {
+        return Ok(());
+    }
     // Start clean so renamed or removed verbs from older versions disappear.
     let _ = unregister_keys();
     let hkcu = RegKey::predef(HKEY_CURRENT_USER);
@@ -72,12 +85,18 @@ fn unregister_keys() -> io::Result<()> {
 }
 
 pub fn unregister() -> io::Result<()> {
+    if packaged() {
+        return Ok(());
+    }
     let r = unregister_keys();
     notify_shell();
     r
 }
 
 pub fn status(exe: Option<&Path>) -> Status {
+    if packaged() {
+        return Status { supported: true, registered: true, stale: false, managed: true, location: "Explorer right-click menu" };
+    }
     let hkcu = RegKey::predef(HKEY_CURRENT_USER);
     let cmd: Option<String> = hkcu
         .open_subkey_with_flags(format!(r"{PDF_KEY}\shell\02compress\command"), KEY_READ)
@@ -88,7 +107,7 @@ pub fn status(exe: Option<&Path>) -> Status {
         (Some(c), Some(exe)) => !c.starts_with(&format!("\"{}\"", exe.display())),
         _ => false,
     };
-    Status { supported: true, registered, stale, location: "Explorer right-click menu" }
+    Status { supported: true, registered, stale, managed: false, location: "Explorer right-click menu" }
 }
 
 fn notify_shell() {

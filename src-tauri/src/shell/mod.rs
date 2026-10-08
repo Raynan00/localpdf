@@ -33,6 +33,8 @@ pub struct Status {
     pub registered: bool,
     /// Registered, but pointing at another copy of the app.
     pub stale: bool,
+    /// The menu comes with the package (Microsoft Store build) and can't be toggled here.
+    pub managed: bool,
     pub location: &'static str,
 }
 
@@ -78,7 +80,7 @@ pub fn unregister() -> std::io::Result<()> {
 
 #[cfg(not(any(windows, target_os = "macos")))]
 pub fn status() -> Status {
-    Status { supported: false, registered: false, stale: false, location: "file manager" }
+    Status { supported: false, registered: false, stale: false, managed: false, location: "file manager" }
 }
 
 const OPT_OUT: &str = "menu-removed";
@@ -105,7 +107,7 @@ pub fn ensure_registered_on_launch(app: &AppHandle) {
         .map(|d| d.join(OPT_OUT).exists())
         .unwrap_or(false);
     let s = status();
-    if s.supported && !opted_out && (!s.registered || s.stale) {
+    if s.supported && !s.managed && !opted_out && (!s.registered || s.stale) {
         if let Err(e) = register() {
             eprintln!("LocalPDF: couldn't add the menu: {e}");
         }

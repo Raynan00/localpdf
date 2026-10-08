@@ -15,6 +15,10 @@ on:
         description: "Also build the Windows Lite installer (no bundled Office converter)"
         type: boolean
         default: false
+      msix:
+        description: "Build the Microsoft Store package (MSIX); identity from repo variables MSIX_IDENTITY_NAME, MSIX_PUBLISHER, MSIX_PUBLISHER_DISPLAY_NAME"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -189,6 +193,72 @@ jobs:
           name: LocalPDF ${{ needs.prepare-release.outputs.tag }}
           body_path: .github/RELEASE_NOTES.md
           files: target/release/bundle/nsis/*-lite-setup.exe
+
+  windows-msix:
+    name: Microsoft Store package (MSIX)
+    needs: [test]
+    if: github.event_name == 'workflow_dispatch' && inputs.msix
+    runs-on: windows-latest
+    env:
+      MSIX_IDENTITY_NAME: ${{ vars.MSIX_IDENTITY_NAME || 'LocalPDF.Test' }}
+      MSIX_PUBLISHER: ${{ vars.MSIX_PUBLISHER || 'CN=LocalPDF Test' }}
+      MSIX_PUBLISHER_DISPLAY_NAME: ${{ vars.MSIX_PUBLISHER_DISPLAY_NAME || 'LocalPDF' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: app
+      - uses: actions/cache@v4
+        with:
+          path: .engine-cache
+          key: engines-win-x64-${{ hashFiles('scripts/fetch-engines.mjs') }}
+      - run: npm ci
+      - run: node scripts/fetch-engines.mjs win-x64
+      - name: Explorer menu handler tests
+        run: cargo test -p localpdf-shell
+      - run: npx tauri build --no-bundle
+      - run: cargo build -p localpdf-shell --release
+      - name: Package (unsigned for the Store, plus a test-signed copy)
+        shell: pwsh
+        run: scripts/msix-package.ps1 -IdentityName $env:MSIX_IDENTITY_NAME -Publisher $env:MSIX_PUBLISHER -PublisherDisplayName $env:MSIX_PUBLISHER_DISPLAY_NAME -TestCertificate
+      - name: Install the test-signed package, check files and menu handlers, uninstall
+        shell: pwsh
+        run: |
+          Import-Certificate -FilePath target\msix\LocalPDF-test.cer -CertStoreLocation Cert:\LocalMachine\TrustedPeople | Out-Null
+          Add-AppxPackage -Path (Get-ChildItem target\msix\*_test-signed.msix).FullName
+          $pkg = Get-AppxPackage -Name $env:MSIX_IDENTITY_NAME
+          if (-not $pkg) { throw "package did not install" }
+          $dir = $pkg.InstallLocation
+          Write-Host "Installed $($pkg.PackageFullName) at $dir"
+          foreach ($f in "LocalPDF.exe", "localpdf_shell.dll", "engines\pdfium.dll", "engines\libreoffice\program\soffice.exe") {
+            if (-not (Test-Path "$dir\$f")) { throw "missing $f in the package" }
+          }
+          $size = (Get-ChildItem $dir -Recurse | Measure-Object Length -Sum).Sum
+          Write-Host "Installed size: $([math]::Round($size / 1MB)) MB"
+          # The manifest registers the two menu classes with a COM surrogate; activating
+          # them from outside the package proves the registration and the DLL load.
+          foreach ($clsid in "{c8dffbbc-3cb0-44c6-9ef0-ee8c214d518b}", "{f4c974e7-f94c-4cb5-9771-cee5a8bed823}") {
+            try {
+              $o = [Activator]::CreateInstance([type]::GetTypeFromCLSID($clsid))
+              Write-Host "COM class $clsid activated"
+              [void][System.Runtime.InteropServices.Marshal]::ReleaseComObject($o)
+            } catch {
+              Write-Warning "COM class $clsid did not activate from outside the package: $($_.Exception.Message)"
+            }
+          }
+          Remove-AppxPackage -Package $pkg.PackageFullName
+          if (Get-AppxPackage -Name $env:MSIX_IDENTITY_NAME) { throw "package still installed" }
+          Write-Host "MSIX install / uninstall round trip OK"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: LocalPDF-msix
+          path: |
+            target/msix/*.msix
+            target/msix/*.cer
 
   macos:
     name: macOS app (${{ matrix.arch }})

@@ -326,5 +326,5 @@ pub fn status(exe: Option<&Path>) -> Status {
         (Some(w), Some(exe)) => !w.contains(&xml(&sh_quote(&exe.to_string_lossy()))),
         _ => false,
     };
-    Status { supported: true, registered, stale, location: "Finder Quick Actions" }
+    Status { supported: true, registered, stale, managed: false, location: "Finder Quick Actions" }
 }

@@ -52,7 +52,7 @@ export function Home() {
             <div className="label">{status.location}</div>
             <div className="state">{on ? "On" : status.stale ? "Points to another copy" : "Off"}</div>
           </div>
-          {on ? (
+          {status.managed ? null : on ? (
             <button className="ghost" disabled={busy} onClick={() => toggle(false)}>
               Remove
             </button>

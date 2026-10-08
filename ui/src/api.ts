@@ -59,6 +59,7 @@ export interface ShellStatus {
   supported: boolean;
   registered: boolean;
   stale: boolean;
+  managed: boolean;
   location: string;
 }
 
