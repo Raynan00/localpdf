@@ -69,8 +69,8 @@ const TIMEOUT: Duration = Duration::from_secs(180);
 pub fn to_pdf(source: &Path) -> Result<PathBuf> {
     let soffice = find_soffice().ok_or_else(|| {
         LpError::EngineMissing(
-            "The Office converter that ships with LocalPDF is missing from this install. \
-             Reinstall LocalPDF to restore it."
+            "No Office converter found. The full LocalPDF installer includes one; with \
+             LocalPDF Lite, install LibreOffice (libreoffice.org) to convert Office files."
                 .into(),
         )
     })?;

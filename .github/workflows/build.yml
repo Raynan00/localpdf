@@ -11,6 +11,10 @@ on:
         description: "Publish a GitHub Release, tagged v<version from tauri.conf.json>. An existing release with that tag is replaced."
         type: boolean
         default: false
+      lite:
+        description: "Also build the Windows Lite installer (no bundled Office converter)"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -135,6 +139,56 @@ jobs:
           name: LocalPDF ${{ needs.prepare-release.outputs.tag || github.ref_name }}
           body_path: .github/RELEASE_NOTES.md
           files: target/release/bundle/nsis/*-setup.exe
+
+  windows-lite:
+    name: Windows Lite installer
+    needs: [test, prepare-release]
+    if: always() && needs.test.result == 'success' && (needs.prepare-release.result == 'success' || needs.prepare-release.result == 'skipped') && github.event_name == 'workflow_dispatch' && (inputs.lite || inputs.release)
+    runs-on: windows-latest
+    env:
+      LOCALPDF_NO_OFFICE: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: app
+      - run: npm ci
+      - run: node scripts/fetch-engines.mjs win-x64
+      - run: npx tauri build --bundles nsis
+      - name: Name it Lite, install, check menu, uninstall
+        shell: pwsh
+        run: |
+          $setup = Get-ChildItem target\release\bundle\nsis\*-setup.exe | Select-Object -First 1
+          $lite = Join-Path $setup.DirectoryName ($setup.Name -replace '-setup\.exe$', '-lite-setup.exe')
+          Move-Item $setup.FullName $lite
+          Write-Host "Installer: $(Split-Path $lite -Leaf) ($([math]::Round((Get-Item $lite).Length / 1MB, 1)) MB)"
+          Start-Process -Wait -FilePath $lite -ArgumentList "/S"
+          $root = "HKCU:\Software\Classes\SystemFileAssociations\.pdf\shell\LocalPDF"
+          $cmd = (Get-ItemProperty "$root\shell\02compress\command").'(default)'
+          if (-not $cmd) { throw "Explorer menu was not registered by the installer" }
+          $installDir = Split-Path ($cmd -replace '^"([^"]+)".*', '$1')
+          if (-not (Test-Path "$installDir\engines\pdfium.dll")) { throw "pdfium.dll not installed" }
+          if (Test-Path "$installDir\engines\libreoffice") { throw "Lite build should not contain LibreOffice" }
+          Start-Process -Wait -FilePath "$installDir\uninstall.exe" -ArgumentList "/S"
+          for ($i = 0; $i -lt 60 -and (Test-Path $root); $i++) { Start-Sleep -Milliseconds 500 }
+          if (Test-Path $root) { throw "Explorer menu still present after uninstall" }
+          Write-Host "Lite install / uninstall round trip OK"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: LocalPDF-windows-x64-lite
+          path: target/release/bundle/nsis/*-lite-setup.exe
+      - if: inputs.release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.prepare-release.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          name: LocalPDF ${{ needs.prepare-release.outputs.tag }}
+          body_path: .github/RELEASE_NOTES.md
+          files: target/release/bundle/nsis/*-lite-setup.exe
 
   macos:
     name: macOS app (${{ matrix.arch }})

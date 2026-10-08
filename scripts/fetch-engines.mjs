@@ -256,6 +256,12 @@ async function fetchLibreOfficeArchive() {
 }
 
 async function fetchLibreOffice() {
+  if (process.env.LOCALPDF_NO_OFFICE) {
+    // LocalPDF Lite: PDF tools only; Office conversion uses a system LibreOffice if present.
+    rmSync(join(engines, "libreoffice"), { recursive: true, force: true });
+    console.log("LOCALPDF_NO_OFFICE set: LibreOffice is not bundled.");
+    return;
+  }
   if (!LO_FILES[target]) {
     console.log(`LibreOffice is not bundled for ${target}; a system install is used in development.`);
     return;
