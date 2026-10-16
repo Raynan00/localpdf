@@ -7,7 +7,7 @@ use std::sync::Mutex;
 use pdfium_render::prelude::*;
 
 use crate::error::{LpError, Result};
-use crate::{docx, naming};
+use crate::{docx, naming, pdf2word};
 
 static PDFIUM: Mutex<Option<&'static Pdfium>> = Mutex::new(None);
 static SEARCH_DIRS: Mutex<Vec<PathBuf>> = Mutex::new(Vec::new());
@@ -59,7 +59,7 @@ pub fn pdfium() -> Result<&'static Pdfium> {
     )))
 }
 
-fn load<'a>(pdfium: &'a Pdfium, path: &Path) -> Result<PdfDocument<'a>> {
+pub(crate) fn load<'a>(pdfium: &'a Pdfium, path: &Path) -> Result<PdfDocument<'a>> {
     pdfium.load_pdf_from_file(path, None).map_err(|e| match e {
         PdfiumError::PdfiumLibraryInternalError(PdfiumInternalError::PasswordError) => {
             LpError::Encrypted(path.to_path_buf())
@@ -69,7 +69,7 @@ fn load<'a>(pdfium: &'a Pdfium, path: &Path) -> Result<PdfDocument<'a>> {
     })
 }
 
-fn engine(e: PdfiumError) -> LpError {
+pub(crate) fn engine(e: PdfiumError) -> LpError {
     LpError::Engine(format!("Page renderer error: {e}"))
 }
 
@@ -82,7 +82,7 @@ pub enum ImageFormat {
 
 const MAX_SIDE_PX: i32 = 12_000;
 
-fn render_page(page: &PdfPage, dpi: u32) -> Result<image::DynamicImage> {
+pub(crate) fn render_page(page: &PdfPage, dpi: u32) -> Result<image::DynamicImage> {
     let px = |pts: f32| ((pts * dpi as f32 / 72.0).round() as i32).clamp(1, MAX_SIDE_PX);
     let cfg = PdfRenderConfig::new()
         .set_target_width(px(page.width().value))
@@ -91,7 +91,7 @@ fn render_page(page: &PdfPage, dpi: u32) -> Result<image::DynamicImage> {
     page.render_with_config(&cfg).map_err(engine)?.as_image().map_err(engine)
 }
 
-fn encode(img: &image::DynamicImage, format: ImageFormat) -> Result<Vec<u8>> {
+pub(crate) fn encode(img: &image::DynamicImage, format: ImageFormat) -> Result<Vec<u8>> {
     let mut out = Vec::new();
     let res = match format {
         ImageFormat::Png => img.write_to(&mut std::io::Cursor::new(&mut out), image::ImageFormat::Png),
@@ -158,85 +158,56 @@ pub fn to_text(source: &Path) -> Result<PathBuf> {
     Ok(target)
 }
 
-/// Text-flow Word document: reflowed paragraphs per page, page breaks
-/// between pages, and pages without a text layer embedded as images.
+/// Editable Word document that keeps the PDF's formatting: fonts, sizes,
+/// bold/italic/colour, alignment, headings, bullet lists, tables, pictures
+/// and two-column pages (see `pdf2word`). Pages without a text layer
+/// (scans) become a full-page picture.
 pub fn to_docx(source: &Path, progress: &mut dyn FnMut(u32, u32)) -> Result<PathBuf> {
     let pdfium = pdfium()?;
     let doc = load(pdfium, source)?;
     let total = doc.pages().len() as u32;
-    let mut builder = docx::Builder::default();
+    let mut contents = Vec::new();
     for (i, page) in doc.pages().iter().enumerate() {
         progress(i as u32, total);
-        let (w, h) = (page.width().value, page.height().value);
-        if i == 0 {
-            builder.page_size(w, h);
-        } else {
-            builder.page_break();
+        contents.push(pdf2word::extract(&doc, &page));
+    }
+    let mut furniture = pdf2word::find_furniture(&contents);
+    let margins = pdf2word::page_margins(&contents, &furniture);
+    furniture.place(&contents, margins);
+    let mut layouts: Vec<_> = contents.iter().map(|c| pdf2word::layout(c, margins, &furniture)).collect();
+    let typo = pdf2word::typography(&layouts);
+    layouts.iter_mut().for_each(|l| pdf2word::apply_headings(l, &typo));
+    pdf2word::join_across_pages(&mut layouts);
+
+    let mut builder = docx::Builder::default();
+    builder.header_footer(std::mem::take(&mut furniture.header), std::mem::take(&mut furniture.footer));
+    for (i, (content, layout)) in contents.into_iter().zip(&layouts).enumerate() {
+        if i > 0 {
+            builder.end_page();
         }
-        let text = page.text().map_err(engine)?.all().replace("\r\n", "\n").replace('\r', "\n");
-        if text.trim().chars().count() < 10 {
-            // Scanned or drawing-only page: keep it visible as a picture.
+        let scanned = layout.text_chars < 10 && !layout.blocks.iter().any(|b| matches!(b, pdf2word::Block::Table(_)));
+        if scanned {
+            let page = doc.pages().get(i as i32).map_err(engine)?;
             let jpeg = encode(&render_page(&page, 150)?, ImageFormat::Jpeg)?;
-            builder.image(jpeg, w, h);
-        } else {
-            for para in reflow(&text) {
-                builder.paragraph(&para);
-            }
+            let m = 18.0;
+            builder.section(docx::Section {
+                page_w: content.width,
+                page_h: content.height,
+                margin_left: m,
+                margin_right: m,
+                margin_top: m,
+                margin_bottom: m,
+                ..Default::default()
+            });
+            let para = docx::Para { align: docx::Align::Center, ..Default::default() };
+            builder.picture(jpeg, docx::Picture::Jpeg, content.width, content.height, &para);
+            continue;
         }
+        let mut images: Vec<_> = content.images.into_iter().map(|im| Some((im.data, im.kind))).collect();
+        pdf2word::write_page(&mut builder, layout, &mut images);
     }
     let target = naming::sibling(source, "", "docx");
     naming::write_atomic(&target, &builder.finish()?)?;
     Ok(target)
 }
 
-/// Join hard-wrapped lines back into paragraphs. A line ends its paragraph
-/// when it is blank, clearly shorter than the page's typical line, or ends
-/// in a colon.
-pub fn reflow(text: &str) -> Vec<String> {
-    let lines: Vec<&str> = text.lines().map(str::trim_end).collect();
-    let typical = {
-        let mut lens: Vec<usize> = lines.iter().map(|l| l.chars().count()).filter(|&n| n > 0).collect();
-        lens.sort_unstable();
-        lens.get(lens.len() * 3 / 4).copied().unwrap_or(0)
-    };
-    let mut paras = Vec::new();
-    let mut cur = String::new();
-    for line in lines {
-        let trimmed = line.trim();
-        if trimmed.is_empty() {
-            if !cur.is_empty() {
-                paras.push(std::mem::take(&mut cur));
-            }
-            continue;
-        }
-        if cur.is_empty() {
-            cur.push_str(trimmed);
-        } else if cur.ends_with('-') && !cur.ends_with(" -") {
-            cur.pop();
-            cur.push_str(trimmed);
-        } else {
-            cur.push(' ');
-            cur.push_str(trimmed);
-        }
-        let short = (trimmed.chars().count() as f64) < typical as f64 * 0.7;
-        if short || trimmed.ends_with(':') {
-            paras.push(std::mem::take(&mut cur));
-        }
-    }
-    if !cur.is_empty() {
-        paras.push(cur);
-    }
-    paras
-}
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn reflow_joins_wrapped_lines() {
-        let text = "This is a long line that wraps around the\nedge of the page and contin-\nues here.\n\nShort heading\nNext para line that is long enough to be\nconsidered body text okay.";
-        let p = super::reflow(text);
-        assert_eq!(p[0], "This is a long line that wraps around the edge of the page and continues here.");
-        assert_eq!(p[1], "Short heading");
-        assert_eq!(p.len(), 3);
-    }
-}

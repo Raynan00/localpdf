@@ -4,6 +4,7 @@
 
 pub mod doc;
 pub mod docx;
+pub mod pdf2word;
 pub mod error;
 pub mod images;
 pub mod kinds;

@@ -194,6 +194,59 @@ fn pdf_to_images_word_text() {
     assert!(r.failures[0].message.contains("no text layer"));
 }
 
+fn docx_part(path: &Path, name: &str) -> String {
+    let mut zip = zip::ZipArchive::new(fs::File::open(path).unwrap()).unwrap();
+    let mut out = String::new();
+    std::io::Read::read_to_string(&mut zip.by_name(name).unwrap(), &mut out).unwrap();
+    out
+}
+
+/// PDF → Word keeps the document's structure and formatting, not just text.
+#[test]
+fn pdf_to_word_keeps_formatting() {
+    if !have_pdfium() {
+        eprintln!("PDFium not available; skipping render tests");
+        return;
+    }
+    let dir = tempfile::tempdir().unwrap();
+    let fixtures = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures");
+    let convert = |name: &str| {
+        let src = dir.path().join(name);
+        fs::copy(fixtures.join(name), &src).unwrap();
+        let r = go(Action::Convert, &[src], Options { target: Some(ConvertTarget::Docx), ..Default::default() });
+        assert!(r.failures.is_empty(), "{:?}", r.failures);
+        r.outputs[0].clone()
+    };
+
+    // Headings, bold/italic/colour runs, bullets, a table and a picture.
+    let out = convert("formatted.pdf");
+    let doc = docx_part(&out, "word/document.xml");
+    assert!(doc.contains("<w:pStyle w:val=\"Heading1\"/>"), "title heading");
+    assert!(doc.contains("<w:pStyle w:val=\"Heading2\"/>"), "section headings");
+    assert!(doc.contains("<w:b/>") && doc.contains("<w:i/>"), "bold and italic runs");
+    assert!(doc.contains("<w:color w:val=\"C02020\"/>"), "coloured run");
+    assert_eq!(doc.matches("<w:numPr>").count(), 3, "three bullets");
+    assert!(doc.contains("<w:tbl>") && doc.matches("<w:tr>").count() == 4, "4-row table");
+    assert!(doc.contains("<w:drawing>"), "picture");
+    // A wrapped paragraph stays one paragraph.
+    assert!(doc.contains("Operating costs stayed flat, and the team closed the quarter ahead of plan."));
+
+    // Running header and page numbers move to Word's header and footer,
+    // two-column pages stay two columns, split paragraphs are rejoined.
+    let out = convert("columns.pdf");
+    let doc = docx_part(&out, "word/document.xml");
+    assert!(docx_part(&out, "word/header1.xml").contains("Acme Corp"));
+    assert!(docx_part(&out, "word/footer1.xml").contains("w:instr=\"PAGE\""));
+    assert!(!doc.contains("Acme Corp"), "header text left in the body");
+    assert!(doc.contains("<w:cols w:num=\"2\""), "two columns");
+    assert!(doc.contains("<w:jc w:val=\"both\"/>"), "justified text");
+    // "Region 5" breaks from the left column into the right one.
+    let region5 = &doc[doc.find("Region 5.").unwrap()..];
+    let para = &region5[..region5.find("</w:p>").unwrap()];
+    assert!(para.contains("regional offices."), "paragraph split by the column break");
+    assert!(doc.contains("<w:gridSpan w:val=\"3\"/>"), "merged table header");
+}
+
 #[test]
 fn office_to_pdf() {
     if localpdf_core::office::find_soffice().is_none() {
