@@ -12,12 +12,17 @@ param(
   [string]$IdentityName = "LocalPDF.Test",
   [string]$Publisher = "CN=LocalPDF Test",
   [string]$PublisherDisplayName = "LocalPDF",
+  # Package version for the Store, e.g. 0.1.1.0. Each Store update needs a
+  # higher one, even when the app version stays the same. Default: the app
+  # version plus ".0".
+  [string]$PackageVersion = "",
   [switch]$TestCertificate
 )
 $ErrorActionPreference = "Stop"
 $root = Split-Path $PSScriptRoot -Parent
 $conf = Get-Content "$root\src-tauri\tauri.conf.json" -Raw | ConvertFrom-Json
-$version = "$($conf.version).0"   # MSIX wants four parts, the Store wants the last one to be 0
+$version = if ($PackageVersion) { $PackageVersion } else { "$($conf.version).0" }   # four parts, the last one 0 for the Store
+if ($version -notmatch '^\d+\.\d+\.\d+\.0$') { throw "Package version must look like 1.2.3.0, got '$version'" }
 
 $sdk = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64\makeappx.exe" |
   Sort-Object { [version]($_.Directory.Parent.Name) } | Select-Object -Last 1

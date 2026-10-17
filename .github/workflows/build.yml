@@ -23,6 +23,10 @@ on:
         description: "Build the Microsoft Store package (MSIX) for Partner Center product 9NL235Q73VTR"
         type: boolean
         default: false
+      msix_version:
+        description: "MSIX package version, e.g. 0.1.1.0. Must be higher than the last one submitted to the Store (blank: app version + .0)"
+        type: string
+        default: ""
 
 permissions:
   contents: write
@@ -219,6 +223,7 @@ jobs:
       MSIX_IDENTITY_NAME: ${{ vars.MSIX_IDENTITY_NAME || 'Raynan.LocalPDF' }}
       MSIX_PUBLISHER: ${{ vars.MSIX_PUBLISHER || 'CN=6CE95327-903C-4CB6-8182-CC1C7295DE2C' }}
       MSIX_PUBLISHER_DISPLAY_NAME: ${{ vars.MSIX_PUBLISHER_DISPLAY_NAME || 'Raynan' }}
+      MSIX_VERSION: ${{ inputs.msix_version }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -240,7 +245,7 @@ jobs:
       - run: cargo build -p localpdf-shell --release
       - name: Package (unsigned for the Store, plus a test-signed copy)
         shell: pwsh
-        run: scripts/msix-package.ps1 -IdentityName $env:MSIX_IDENTITY_NAME -Publisher $env:MSIX_PUBLISHER -PublisherDisplayName $env:MSIX_PUBLISHER_DISPLAY_NAME -TestCertificate
+        run: scripts/msix-package.ps1 -IdentityName $env:MSIX_IDENTITY_NAME -Publisher $env:MSIX_PUBLISHER -PublisherDisplayName $env:MSIX_PUBLISHER_DISPLAY_NAME -PackageVersion "$env:MSIX_VERSION" -TestCertificate
       - name: Install the test-signed package, check files and menu handlers, uninstall
         shell: pwsh
         run: |
